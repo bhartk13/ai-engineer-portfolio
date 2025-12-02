@@ -1,0 +1,12 @@
+# Created by venv; see https://docs.python.org/3/library/venv.html
+*etc/*
+*.db
+*.sqlite3
+*.log
+*.env
+__pycache__/
+.vscode/
+.env
+Scripts/
+Include/
+Lib/
