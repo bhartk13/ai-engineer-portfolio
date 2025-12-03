@@ -1,68 +1,94 @@
-Model Context Protocol (MCP) Chat Simulation
+# Model Context Protocol (MCP) Chat Simulation
 
-This project simulates the core logic of an AI Client interacting with a secure financial system (the "MCP Server") using natural language. It demonstrates how a Large Language Model (LLM) is used to translate a user's conversational request into a structured, executable command (Intent Recognition) before the command is securely processed by the backend.
+## Overview
+This project simulates how an AI client interacts with a secure financial system (the **MCP Server**) using natural language. The goal is to demonstrate how a Large Language Model (LLM) converts a user’s conversational request into a structured backend command.
 
-The entire interaction runs in your terminal, with the LLM call being made to the Gemini API.
+All interactions run in your terminal, and the LLM call is made to the **Gemini API**.
 
-Prerequisites
+---
 
-Python: Ensure you have Python 3.8+ installed.
+## Prerequisites
 
-Requests Library: This script requires the requests library for making HTTP calls to the Gemini API.
+- **Python 3.8+**
+- **Requests library**
+  ```bash
+  pip install requests
+  ```
+- **Gemini API Key**  
+  Required for the `interpret_natural_language_command` function.
 
-pip install requests
+---
 
+## Setup & Execution
 
-API Key: A Gemini API key is required for the interpret_natural_language_command function.
+1. Save the script as **mcp_simulation.py**.
+2. Insert your Gemini API key:
+   ```python
+   API_KEY = "YOUR_GEMINI_API_KEY_HERE"
+   ```
+3. Run in terminal:
+   ```bash
+   python mcp_simulation.py
+   ```
 
-Setup and Running
+---
 
-Save the Script: Ensure the code is saved as mcp_simulation.py.
+## How It Works
 
-Insert API Key: Open mcp_simulation.py and replace the placeholder value for API_KEY:
+This project follows the **Model Context Protocol (MCP)** pattern using three core steps:
 
-API_KEY = "YOUR_GEMINI_API_KEY_HERE"
+### 1. User Input  
+You type a natural request starting with `@fintech`, such as:  
+`@fintech What is my checking balance?`
 
+### 2. LLM Interpreter  
+The function `interpret_natural_language_command` sends your query + system prompt to Gemini, which returns a strict JSON structure such as:
 
-Execute: Run the script from your terminal:
+```json
+{
+  "action": "LIST_ACCOUNTS",
+  "parameters": { "type": "Deposit" }
+}
+```
 
-python mcp_simulation.py
+### 3. MCP Server Simulation  
+`simulate_mcp_server` receives the structured command and pulls data from `MOCK_FINANCIAL_DB`.  
+The LLM **never directly accesses sensitive data**.
 
+---
 
-How It Works
+## Example Commands
 
-This simulation demonstrates the Model Context Protocol (MCP) pattern using three main components:
+| Natural Language Input | Expected LLM Output |
+|------------------------|---------------------|
+| `@fintech List all accounts` | `{ "action": "LIST_ACCOUNTS" }` |
+| `@fintech What are my investment balances` | `{ "action": "LIST_ACCOUNTS", "parameters": { "type": "Brokerage" }}` |
+| `@fintech Show me my checking and savings accounts` | `{ "action": "LIST_ACCOUNTS", "parameters": { "type": "Deposit" }}` |
+| `@fintech accounts sorted by balance from highest to lowest` | `{ "action": "LIST_ACCOUNTS", "parameters": { "sort": "balance_high" }}` |
+| `@fintech credit card debt` | `{ "action": "LIST_ACCOUNTS", "parameters": { "type": "Credit Card" }}` |
 
-User Input: You type a command starting with @fintech (e.g., @fintech What is my checking balance?).
+---
 
-LLM Command Interpreter (interpret_natural_language_command): The natural language query is sent to the Gemini model, along with a system prompt defining the available actions (LIST_ACCOUNTS) and parameters (type, sort). The LLM's task is to return a strict JSON object (e.g., {"action": "LIST_ACCOUNTS", "parameters": {"type": "Deposit"}}).
+## Purpose of This Simulation
+- Demonstrates *intent recognition*
+- Ensures *secure separation* between LLM and financial data
+- Mimics real-world ChatGPT App integrations (e.g., Stripe, Shopify, Tripadvisor)
 
-Simulated MCP Server (simulate_mcp_server): This function receives the structured JSON command (not the original text) and executes the instruction against the internal MOCK_FINANCIAL_DB, ensuring that the LLM never directly touches sensitive data.
+---
 
-Example Commands
+## Files Included
+- `README.md` — this file  
+- Your Python simulation script (`mcp_simulation.py`)
 
-Try these commands in the running console:
+---
 
-Natural Language Command
+## Next Steps
+If you'd like, I can generate:
+- Architecture diagram  
+- A real MCP Server (Python)  
+- ChatGPT App manifest  
+- OAuth flow for connecting to Chase / BoFA  
+- Full sandbox API simulation  
 
-Expected LLM Output (Structured Command)
+Just let me know!
 
-@fintech List all accounts
-
-{"action": "LIST_ACCOUNTS"}
-
-@fintech What are my investment account balances
-
-{"action": "LIST_ACCOUNTS", "parameters": {"type": "Brokerage"}}
-
-@fintech Show me my checking and savings accounts
-
-{"action": "LIST_ACCOUNTS", "parameters": {"type": "Deposit"}}
-
-@fintech accounts sorted by balance from highest to lowest
-
-{"action": "LIST_ACCOUNTS", "parameters": {"sort": "balance_high"}}
-
-@fintech credit card debt
-
-{"action": "LIST_ACCOUNTS", "parameters": {"type": "Credit Card"}}
