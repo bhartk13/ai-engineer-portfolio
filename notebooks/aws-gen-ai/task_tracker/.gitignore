@@ -10,3 +10,6 @@ __pycache__/
 Scripts/
 Include/
 Lib/
+
+# Task tracker data
+tasks.json
