@@ -1,0 +1,126 @@
+name: Deployment Notifications
+
+# This workflow can be called by other workflows to send notifications
+# It's a reusable workflow for deployment and rollback notifications
+
+on:
+  workflow_call:
+    inputs:
+      event_type:
+        required: true
+        type: string
+        description: 'Type of event (deployment_success, deployment_failure, rollback)'
+      environment:
+        required: true
+        type: string
+        description: 'Environment (staging, production)'
+      message:
+        required: false
+        type: string
+        description: 'Additional message'
+      deployment_url:
+        required: false
+        type: string
+        description: 'URL of deployed application'
+    secrets:
+      SLACK_WEBHOOK_URL:
+        required: false
+      EMAIL_USERNAME:
+        required: false
+      EMAIL_PASSWORD:
+        required: false
+
+jobs:
+  notify:
+    name: Send Notifications
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Prepare notification content
+        id: prepare
+        run: |
+          case "${{ inputs.event_type }}" in
+            deployment_success)
+              EMOJI="✅"
+              TITLE="Deployment Successful"
+              COLOR="good"
+              ;;
+            deployment_failure)
+              EMOJI="❌"
+              TITLE="Deployment Failed"
+              COLOR="danger"
+              ;;
+            rollback)
+              EMOJI="🚨"
+              TITLE="Rollback Triggered"
+              COLOR="warning"
+              ;;
+            *)
+              EMOJI="ℹ️"
+              TITLE="Deployment Notification"
+              COLOR="#808080"
+              ;;
+          esac
+          
+          echo "emoji=$EMOJI" >> $GITHUB_OUTPUT
+          echo "title=$TITLE" >> $GITHUB_OUTPUT
+          echo "color=$COLOR" >> $GITHUB_OUTPUT
+      
+      - name: Send Slack notification
+        if: secrets.SLACK_WEBHOOK_URL != ''
+        uses: slackapi/slack-github-action@v1
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          payload: |
+            {
+              "text": "${{ steps.prepare.outputs.emoji }} ${{ steps.prepare.outputs.title }}",
+              "attachments": [
+                {
+                  "color": "${{ steps.prepare.outputs.color }}",
+                  "fields": [
+                    {
+                      "title": "Environment",
+                      "value": "${{ inputs.environment }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Repository",
+                      "value": "${{ github.repository }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Branch",
+                      "value": "${{ github.ref_name }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Commit",
+                      "value": "<${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}>",
+                      "short": true
+                    },
+                    {
+                      "title": "Triggered by",
+                      "value": "${{ github.actor }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Workflow",
+                      "value": "<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>",
+                      "short": true
+                    }
+                  ]
+                }
+              ]
+            }
+      
+      - name: Log notification
+        run: |
+          echo "${{ steps.prepare.outputs.emoji }} ${{ steps.prepare.outputs.title }}"
+          echo "Environment: ${{ inputs.environment }}"
+          echo "Event: ${{ inputs.event_type }}"
+          if [ -n "${{ inputs.message }}" ]; then
+            echo "Message: ${{ inputs.message }}"
+          fi
+          if [ -n "${{ inputs.deployment_url }}" ]; then
+            echo "URL: ${{ inputs.deployment_url }}"
+          fi

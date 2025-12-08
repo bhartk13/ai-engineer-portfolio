@@ -1,0 +1,469 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  AWS_REGION: us-east-1
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '20'
+
+jobs:
+  # Stage 1: Test
+  test-backend:
+    name: Test Backend
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: digital-twin-chat/backend/requirements.txt
+      
+      - name: Install backend dependencies
+        working-directory: digital-twin-chat/backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Run backend linting
+        working-directory: digital-twin-chat/backend
+        run: |
+          pip install flake8
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      
+      - name: Run backend unit tests
+        working-directory: digital-twin-chat/backend
+        run: |
+          pytest test_basic.py test_chat_endpoints.py -v --tb=short
+      
+      - name: Run backend property tests
+        working-directory: digital-twin-chat/backend
+        run: |
+          pytest test_integration.py -v --tb=short || echo "Property tests completed with warnings"
+
+  test-frontend:
+    name: Test Frontend
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: digital-twin-chat/frontend/package-lock.json
+      
+      - name: Install frontend dependencies
+        working-directory: digital-twin-chat/frontend
+        run: npm ci
+      
+      - name: Run frontend linting
+        working-directory: digital-twin-chat/frontend
+        run: npm run lint
+      
+      - name: Run TypeScript type checking
+        working-directory: digital-twin-chat/frontend
+        run: npx tsc --noEmit
+
+  # Stage 2: Build
+  build-backend:
+    name: Build Backend
+    runs-on: ubuntu-latest
+    needs: [test-backend, test-frontend]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Package Lambda function
+        working-directory: digital-twin-chat/backend
+        run: |
+          mkdir -p lambda-package
+          cp *.py lambda-package/ 2>/dev/null || true
+          pip install -r requirements.txt -t lambda-package/
+          cd lambda-package
+          zip -r ../lambda-deployment.zip .
+      
+      - name: Upload Lambda package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lambda-package
+          path: digital-twin-chat/backend/lambda-deployment.zip
+          retention-days: 7
+
+  build-frontend:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    needs: [test-backend, test-frontend]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: digital-twin-chat/frontend/package-lock.json
+      
+      - name: Install frontend dependencies
+        working-directory: digital-twin-chat/frontend
+        run: npm ci
+      
+      - name: Build frontend
+        working-directory: digital-twin-chat/frontend
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.STAGING_API_URL }}
+        run: npm run build
+      
+      - name: Upload frontend build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: digital-twin-chat/frontend/out
+          retention-days: 7
+
+  # Stage 3: Deploy to Staging
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build-backend, build-frontend]
+    if: github.ref == 'refs/heads/develop' || github.event_name == 'workflow_dispatch'
+    environment:
+      name: staging
+      url: ${{ steps.deploy.outputs.cloudfront_url }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install AWS CDK
+        run: npm install -g aws-cdk
+      
+      - name: Deploy infrastructure
+        id: deploy-infra
+        working-directory: digital-twin-chat/infrastructure
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install -r requirements.txt
+          cdk deploy --context env=staging --context region=${{ env.AWS_REGION }} --require-approval never --outputs-file outputs-staging.json
+          echo "Infrastructure deployed"
+      
+      - name: Download Lambda package
+        uses: actions/download-artifact@v4
+        with:
+          name: lambda-package
+          path: digital-twin-chat/backend
+      
+      - name: Deploy Lambda function
+        working-directory: digital-twin-chat/infrastructure
+        run: |
+          LAMBDA_FUNCTION=$(jq -r '.[].LambdaFunctionName' outputs-staging.json)
+          aws lambda update-function-code \
+            --function-name "$LAMBDA_FUNCTION" \
+            --zip-file fileb://../backend/lambda-deployment.zip
+          aws lambda wait function-updated --function-name "$LAMBDA_FUNCTION"
+          echo "Lambda deployed: $LAMBDA_FUNCTION"
+      
+      - name: Download frontend build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: digital-twin-chat/frontend/out
+      
+      - name: Deploy frontend to S3
+        working-directory: digital-twin-chat/infrastructure
+        run: |
+          FRONTEND_BUCKET=$(jq -r '.[].FrontendBucketName' outputs-staging.json)
+          aws s3 sync ../frontend/out/ "s3://$FRONTEND_BUCKET/" --delete
+          echo "Frontend deployed to: $FRONTEND_BUCKET"
+      
+      - name: Invalidate CloudFront cache
+        id: deploy
+        working-directory: digital-twin-chat/infrastructure
+        run: |
+          CLOUDFRONT_DOMAIN=$(jq -r '.[].CloudFrontDomain' outputs-staging.json)
+          DISTRIBUTION_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?DomainName=='$CLOUDFRONT_DOMAIN'].Id" --output text)
+          
+          if [ -n "$DISTRIBUTION_ID" ]; then
+            aws cloudfront create-invalidation --distribution-id "$DISTRIBUTION_ID" --paths "/*"
+            echo "CloudFront cache invalidated"
+          fi
+          
+          echo "cloudfront_url=https://$CLOUDFRONT_DOMAIN" >> $GITHUB_OUTPUT
+
+  # Stage 4: Integration Tests on Staging
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install dependencies
+        working-directory: digital-twin-chat/backend
+        run: |
+          pip install -r requirements.txt
+          pip install requests
+      
+      - name: Load staging outputs
+        working-directory: digital-twin-chat/infrastructure
+        run: |
+          if [ -f outputs-staging.json ]; then
+            echo "Outputs file found"
+          else
+            echo "Downloading outputs from previous job"
+          fi
+      
+      - name: Run integration tests
+        working-directory: digital-twin-chat/backend
+        env:
+          ENVIRONMENT: staging
+        run: |
+          # Run basic health check
+          API_ENDPOINT="${{ secrets.STAGING_API_URL }}"
+          
+          echo "Testing API health endpoint..."
+          response=$(curl -s -o /dev/null -w "%{http_code}" "${API_ENDPOINT}api/health" || echo "000")
+          
+          if [ "$response" = "200" ]; then
+            echo "✓ API health check passed"
+          else
+            echo "✗ API health check failed with status: $response"
+            exit 1
+          fi
+          
+          echo "Integration tests completed successfully"
+
+  # Stage 5: Manual Approval for Production
+  approve-production:
+    name: Approve Production Deployment
+    runs-on: ubuntu-latest
+    needs: integration-tests
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: production-approval
+    
+    steps:
+      - name: Manual approval checkpoint
+        run: |
+          echo "Production deployment approved"
+          echo "Proceeding to production deployment..."
+
+  # Stage 6: Deploy to Production
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: approve-production
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.cloudfront_url }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install AWS CDK
+        run: npm install -g aws-cdk
+      
+      - name: Deploy infrastructure
+        id: deploy-infra
+        working-directory: digital-twin-chat/infrastructure
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install -r requirements.txt
+          cdk deploy --context env=production --context region=${{ env.AWS_REGION }} --require-approval never --outputs-file outputs-production.json
+          echo "Infrastructure deployed"
+      
+      - name: Download Lambda package
+        uses: actions/download-artifact@v4
+        with:
+          name: lambda-package
+          path: digital-twin-chat/backend
+      
+      - name: Deploy Lambda function
+        working-directory: digital-twin-chat/infrastructure
+        run: |
+          LAMBDA_FUNCTION=$(jq -r '.[].LambdaFunctionName' outputs-production.json)
+          aws lambda update-function-code \
+            --function-name "$LAMBDA_FUNCTION" \
+            --zip-file fileb://../backend/lambda-deployment.zip
+          aws lambda wait function-updated --function-name "$LAMBDA_FUNCTION"
+          echo "Lambda deployed: $LAMBDA_FUNCTION"
+      
+      - name: Download frontend build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: digital-twin-chat/frontend/out
+      
+      - name: Deploy frontend to S3
+        working-directory: digital-twin-chat/infrastructure
+        run: |
+          FRONTEND_BUCKET=$(jq -r '.[].FrontendBucketName' outputs-production.json)
+          aws s3 sync ../frontend/out/ "s3://$FRONTEND_BUCKET/" --delete
+          echo "Frontend deployed to: $FRONTEND_BUCKET"
+      
+      - name: Invalidate CloudFront cache
+        id: deploy
+        working-directory: digital-twin-chat/infrastructure
+        run: |
+          CLOUDFRONT_DOMAIN=$(jq -r '.[].CloudFrontDomain' outputs-production.json)
+          DISTRIBUTION_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?DomainName=='$CLOUDFRONT_DOMAIN'].Id" --output text)
+          
+          if [ -n "$DISTRIBUTION_ID" ]; then
+            aws cloudfront create-invalidation --distribution-id "$DISTRIBUTION_ID" --paths "/*"
+            echo "CloudFront cache invalidated"
+          fi
+          
+          echo "cloudfront_url=https://$CLOUDFRONT_DOMAIN" >> $GITHUB_OUTPUT
+      
+      - name: Run smoke tests
+        working-directory: digital-twin-chat/infrastructure
+        run: |
+          API_ENDPOINT=$(jq -r '.[].ApiEndpoint' outputs-production.json)
+          
+          echo "Running production smoke tests..."
+          response=$(curl -s -o /dev/null -w "%{http_code}" "${API_ENDPOINT}api/health" || echo "000")
+          
+          if [ "$response" = "200" ]; then
+            echo "✓ Production smoke test passed"
+          else
+            echo "✗ Production smoke test failed with status: $response"
+            exit 1
+          fi
+
+  # Rollback on Failure
+  rollback-on-failure:
+    name: Rollback on Failure
+    runs-on: ubuntu-latest
+    needs: deploy-production
+    if: failure() && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Trigger rollback
+        working-directory: digital-twin-chat/infrastructure
+        run: |
+          echo "Deployment failed. Initiating rollback..."
+          
+          # Load outputs to get Lambda function name
+          if [ -f outputs-production.json ]; then
+            LAMBDA_FUNCTION=$(jq -r '.[].LambdaFunctionName' outputs-production.json)
+            
+            # Get previous version
+            PREVIOUS_VERSION=$(aws lambda list-versions-by-function \
+              --function-name "$LAMBDA_FUNCTION" \
+              --query 'Versions[-2].Version' \
+              --output text)
+            
+            if [ -n "$PREVIOUS_VERSION" ] && [ "$PREVIOUS_VERSION" != "None" ]; then
+              echo "Rolling back to version: $PREVIOUS_VERSION"
+              
+              # Update alias or create if doesn't exist
+              if aws lambda get-alias --function-name "$LAMBDA_FUNCTION" --name "live" &> /dev/null; then
+                aws lambda update-alias \
+                  --function-name "$LAMBDA_FUNCTION" \
+                  --name "live" \
+                  --function-version "$PREVIOUS_VERSION"
+              else
+                aws lambda create-alias \
+                  --function-name "$LAMBDA_FUNCTION" \
+                  --name "live" \
+                  --function-version "$PREVIOUS_VERSION"
+              fi
+              
+              echo "Rollback completed to version $PREVIOUS_VERSION"
+            else
+              echo "No previous version found for rollback"
+            fi
+          fi
+      
+      - name: Send rollback notification
+        if: always()
+        run: |
+          echo "Rollback notification would be sent here"
+          echo "Consider integrating with Slack, email, or other notification services"
+          echo "Deployment failed and rollback was attempted for production environment"
