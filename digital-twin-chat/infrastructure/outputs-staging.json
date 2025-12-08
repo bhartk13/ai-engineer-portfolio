@@ -1,0 +1,9 @@
+﻿{
+  "DigitalTwinChatStack-staging": {
+    "FrontendBucketName": "digitaltwinchatstack-stag-storagefrontendbucketc06-rm2famvxa4z3",
+    "ApiEndpoint": "https://fm90w0818j.execute-api.us-east-1.amazonaws.com/",
+    "LambdaFunctionName": "DigitalTwinChatStack-stag-ComputeDigitalTwinChatFu-rk2BQfuMM3pg",
+    "CloudFrontDomain": "dgc2cjdjejel3.cloudfront.net",
+    "MemoryBucketName": "digitaltwinchatstack-stag-storagememorybucketb6928-xjs1cjqcvagm"
+  }
+}

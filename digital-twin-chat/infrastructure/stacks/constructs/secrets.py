@@ -21,22 +21,12 @@ class SecretsConstruct(Construct):
     ) -> None:
         super().__init__(scope, construct_id)
 
-        # Create KMS key for secret encryption
-        kms_key = kms.Key(
-            self,
-            "SecretsKmsKey",
-            description=f"KMS key for Digital Twin Chat secrets ({env_name})",
-            enable_key_rotation=True,
-            removal_policy=RemovalPolicy.RETAIN,
-        )
-
-        # LLM API Key secret
+        # LLM API Key secret (using AWS managed encryption key)
         self.llm_api_key_secret = secretsmanager.Secret(
             self,
             "LlmApiKeySecret",
             secret_name=f"digital-twin-chat/{env_name}/llm-api-key",
             description=f"LLM API key for Digital Twin Chat ({env_name})",
-            encryption_key=kms_key,
             removal_policy=RemovalPolicy.RETAIN,
             # Note: Secret value must be set manually after deployment
             # via AWS Console or CLI: aws secretsmanager put-secret-value

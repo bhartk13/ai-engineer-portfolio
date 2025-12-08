@@ -6,6 +6,7 @@ from aws_cdk import (
     aws_iam as iam,
     aws_s3 as s3,
     aws_secretsmanager as secretsmanager,
+    Stack,
 )
 from constructs import Construct
 
@@ -41,6 +42,9 @@ class LambdaExecutionRole:
             description="Execution role for Digital Twin Chat Lambda function",
         )
 
+        # Get stack for region and account
+        stack = Stack.of(scope)
+
         # CloudWatch Logs policy - specific log group
         logs_policy = iam.PolicyStatement(
             effect=iam.Effect.ALLOW,
@@ -50,7 +54,7 @@ class LambdaExecutionRole:
                 "logs:PutLogEvents",
             ],
             resources=[
-                f"arn:aws:logs:{scope.region}:{scope.account}:log-group:/aws/lambda/*",
+                f"arn:aws:logs:{stack.region}:{stack.account}:log-group:/aws/lambda/*",
             ],
         )
         role.add_to_policy(logs_policy)
@@ -108,9 +112,9 @@ class LambdaExecutionRole:
             ],
             resources=[
                 # Specific model ARNs - adjust based on actual models used
-                f"arn:aws:bedrock:{scope.region}::foundation-model/anthropic.claude-3-sonnet-20240229-v1:0",
-                f"arn:aws:bedrock:{scope.region}::foundation-model/anthropic.claude-3-haiku-20240307-v1:0",
-                f"arn:aws:bedrock:{scope.region}::foundation-model/anthropic.claude-v2:1",
+                f"arn:aws:bedrock:{stack.region}::foundation-model/anthropic.claude-3-sonnet-20240229-v1:0",
+                f"arn:aws:bedrock:{stack.region}::foundation-model/anthropic.claude-3-haiku-20240307-v1:0",
+                f"arn:aws:bedrock:{stack.region}::foundation-model/anthropic.claude-v2:1",
             ],
         )
         role.add_to_policy(bedrock_policy)

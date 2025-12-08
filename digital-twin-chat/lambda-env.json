@@ -1,0 +1,10 @@
+{
+  "Variables": {
+    "ENVIRONMENT": "staging",
+    "LOG_LEVEL": "DEBUG",
+    "S3_MEMORY_BUCKET": "digitaltwinchatstack-stag-storagememorybucketb6928-xjs1cjqcvagm",
+    "S3_PERSONA_BUCKET": "digitaltwinchatstack-stag-storagememorybucketb6928-xjs1cjqcvagm",
+    "SECRETS_MANAGER_SECRET_NAME": "digital-twin-chat/staging/llm-api-key",
+    "CORS_ORIGINS": "https://dgc2cjdjejel3.cloudfront.net,http://localhost:3000"
+  }
+}

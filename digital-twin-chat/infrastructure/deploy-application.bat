@@ -87,24 +87,38 @@ echo.
 
 REM Package Lambda function
 echo [INFO] Packaging Lambda function...
-cd ..\backend
 
-if exist lambda-package rmdir /s /q lambda-package
-mkdir lambda-package
-
-echo [INFO] Copying application code...
-copy *.py lambda-package\ >nul 2>nul
-
-echo [INFO] Installing Python dependencies...
-pip install -q -r requirements.txt -t lambda-package\
-
-echo [INFO] Creating deployment package...
-cd lambda-package
-powershell -Command "Compress-Archive -Path * -DestinationPath ..\lambda-deployment.zip -Force"
-cd ..
+REM Check if Docker is available
+where docker >nul 2>nul
+if errorlevel 1 (
+    echo [WARN] Docker not found. Using local Python (may cause compatibility issues).
+    cd ..\backend
+    
+    if exist lambda-package rmdir /s /q lambda-package
+    mkdir lambda-package
+    
+    echo [INFO] Copying application code...
+    copy *.py lambda-package\ >nul 2>nul
+    
+    echo [INFO] Installing Python dependencies...
+    pip install -q -r requirements.txt -t lambda-package\
+    
+    echo [INFO] Creating deployment package...
+    cd lambda-package
+    powershell -Command "Compress-Archive -Path * -DestinationPath ..\lambda-deployment.zip -Force"
+    cd ..
+    
+    cd ..\infrastructure
+) else (
+    echo [INFO] Using Docker to build Lambda package for Linux compatibility...
+    call build-lambda-docker.bat
+    if errorlevel 1 (
+        echo [ERROR] Docker build failed
+        exit /b 1
+    )
+)
 
 echo [INFO] Lambda package created: backend\lambda-deployment.zip
-cd ..\infrastructure
 echo.
 
 REM Deploy Lambda function
