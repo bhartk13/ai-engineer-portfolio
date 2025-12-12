@@ -7,7 +7,6 @@ I’m focused on building **AI agents, RAG pipelines, and intelligent applicatio
 ---
 
 ## 🔥 What I'm Working On Right Now
-- Contributing to **LangChain** open-source projects
 - Building **RAG chatbot and agent workflows** using:
   - OpenAI | HuggingFace
   - LangChain | Vector DBs (FAISS / Pinecone)
@@ -19,7 +18,7 @@ I’m focused on building **AI agents, RAG pipelines, and intelligent applicatio
 ## 🧠 AI Skills I'm Growing
 | Category | Tools & Tech |
 |---------|--------------|
-| LLM Apps | LangChain, OpenAI, HuggingFace, Prompt Engineering |
+| LLM Apps | LangChain, CrewAI, OpenAI, HuggingFace, Prompt Engineering |
 | ML | Python, PyTorch, Scikit-learn |
 | Data | Pandas, SQL, Feature Engineering |
 | Deployment | FastAPI, Docker, AWS (Lambda, S3, ECS, API Gateway) |
@@ -30,7 +29,7 @@ I’m focused on building **AI agents, RAG pipelines, and intelligent applicatio
 | Project | Description | Status |
 |--------|-------------|--------|
 | **RAG Customer Support Bot** | Fetches answers from custom knowledge base using embeddings | 🚧 In progress |
-| **LangChain Contribution** | Documentation upgrade + example notebooks | ✅ Active |
+| **Agentic AI** | Multi agent research + analysis using CrewAI | ✅ Active |
 | **Kaggle Competition** | Improving public solutions and tracking leaderboard progress | 🚀 Started |
 
 ---
