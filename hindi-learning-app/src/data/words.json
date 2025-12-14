@@ -1,0 +1,308 @@
+[
+  {
+    "id": "animal-1",
+    "hindi": "कुत्ता",
+    "english": "Dog",
+    "romanization": "kutta",
+    "category": "animals",
+    "imageFile": "/images/animals/dog.svg",
+    "audioFile": "/audio/words/dog.mp3"
+  },
+  {
+    "id": "animal-2",
+    "hindi": "बिल्ली",
+    "english": "Cat",
+    "romanization": "billi",
+    "category": "animals",
+    "imageFile": "/images/animals/cat.svg",
+    "audioFile": "/audio/words/cat.mp3"
+  },
+  {
+    "id": "animal-3",
+    "hindi": "हाथी",
+    "english": "Elephant",
+    "romanization": "haathi",
+    "category": "animals",
+    "imageFile": "/images/animals/elephant.svg",
+    "audioFile": "/audio/words/elephant.mp3"
+  },
+  {
+    "id": "animal-4",
+    "hindi": "शेर",
+    "english": "Lion",
+    "romanization": "sher",
+    "category": "animals",
+    "imageFile": "/images/animals/lion.svg",
+    "audioFile": "/audio/words/lion.mp3"
+  },
+  {
+    "id": "animal-5",
+    "hindi": "बंदर",
+    "english": "Monkey",
+    "romanization": "bandar",
+    "category": "animals",
+    "imageFile": "/images/animals/monkey.svg",
+    "audioFile": "/audio/words/monkey.mp3"
+  },
+  {
+    "id": "animal-6",
+    "hindi": "चिड़िया",
+    "english": "Bird",
+    "romanization": "chidiya",
+    "category": "animals",
+    "imageFile": "/images/animals/bird.svg",
+    "audioFile": "/audio/words/bird.mp3"
+  },
+  {
+    "id": "animal-7",
+    "hindi": "मछली",
+    "english": "Fish",
+    "romanization": "machhli",
+    "category": "animals",
+    "imageFile": "/images/animals/fish.svg",
+    "audioFile": "/audio/words/fish.mp3"
+  },
+  {
+    "id": "animal-8",
+    "hindi": "गाय",
+    "english": "Cow",
+    "romanization": "gaay",
+    "category": "animals",
+    "imageFile": "/images/animals/cow.svg",
+    "audioFile": "/audio/words/cow.mp3"
+  },
+  {
+    "id": "color-1",
+    "hindi": "लाल",
+    "english": "Red",
+    "romanization": "laal",
+    "category": "colors",
+    "imageFile": "/images/colors/red.svg",
+    "audioFile": "/audio/words/red.mp3"
+  },
+  {
+    "id": "color-2",
+    "hindi": "नीला",
+    "english": "Blue",
+    "romanization": "neela",
+    "category": "colors",
+    "imageFile": "/images/colors/blue.svg",
+    "audioFile": "/audio/words/blue.mp3"
+  },
+  {
+    "id": "color-3",
+    "hindi": "हरा",
+    "english": "Green",
+    "romanization": "hara",
+    "category": "colors",
+    "imageFile": "/images/colors/green.svg",
+    "audioFile": "/audio/words/green.mp3"
+  },
+  {
+    "id": "color-4",
+    "hindi": "पीला",
+    "english": "Yellow",
+    "romanization": "peela",
+    "category": "colors",
+    "imageFile": "/images/colors/yellow.svg",
+    "audioFile": "/audio/words/yellow.mp3"
+  },
+  {
+    "id": "color-5",
+    "hindi": "काला",
+    "english": "Black",
+    "romanization": "kaala",
+    "category": "colors",
+    "imageFile": "/images/colors/black.svg",
+    "audioFile": "/audio/words/black.mp3"
+  },
+  {
+    "id": "color-6",
+    "hindi": "सफ़ेद",
+    "english": "White",
+    "romanization": "safed",
+    "category": "colors",
+    "imageFile": "/images/colors/white.svg",
+    "audioFile": "/audio/words/white.mp3"
+  },
+  {
+    "id": "color-7",
+    "hindi": "गुलाबी",
+    "english": "Pink",
+    "romanization": "gulaabi",
+    "category": "colors",
+    "imageFile": "/images/colors/pink.svg",
+    "audioFile": "/audio/words/pink.mp3"
+  },
+  {
+    "id": "color-8",
+    "hindi": "नारंगी",
+    "english": "Orange",
+    "romanization": "naarangi",
+    "category": "colors",
+    "imageFile": "/images/colors/orange.svg",
+    "audioFile": "/audio/words/orange.mp3"
+  },
+  {
+    "id": "number-1",
+    "hindi": "एक",
+    "english": "One",
+    "romanization": "ek",
+    "category": "numbers",
+    "imageFile": "/images/numbers/one.svg",
+    "audioFile": "/audio/words/one.mp3"
+  },
+  {
+    "id": "number-2",
+    "hindi": "दो",
+    "english": "Two",
+    "romanization": "do",
+    "category": "numbers",
+    "imageFile": "/images/numbers/two.svg",
+    "audioFile": "/audio/words/two.mp3"
+  },
+  {
+    "id": "number-3",
+    "hindi": "तीन",
+    "english": "Three",
+    "romanization": "teen",
+    "category": "numbers",
+    "imageFile": "/images/numbers/three.svg",
+    "audioFile": "/audio/words/three.mp3"
+  },
+  {
+    "id": "number-4",
+    "hindi": "चार",
+    "english": "Four",
+    "romanization": "chaar",
+    "category": "numbers",
+    "imageFile": "/images/numbers/four.svg",
+    "audioFile": "/audio/words/four.mp3"
+  },
+  {
+    "id": "number-5",
+    "hindi": "पाँच",
+    "english": "Five",
+    "romanization": "paanch",
+    "category": "numbers",
+    "imageFile": "/images/numbers/five.svg",
+    "audioFile": "/audio/words/five.mp3"
+  },
+  {
+    "id": "number-6",
+    "hindi": "छह",
+    "english": "Six",
+    "romanization": "chhah",
+    "category": "numbers",
+    "imageFile": "/images/numbers/six.svg",
+    "audioFile": "/audio/words/six.mp3"
+  },
+  {
+    "id": "number-7",
+    "hindi": "सात",
+    "english": "Seven",
+    "romanization": "saat",
+    "category": "numbers",
+    "imageFile": "/images/numbers/seven.svg",
+    "audioFile": "/audio/words/seven.mp3"
+  },
+  {
+    "id": "number-8",
+    "hindi": "आठ",
+    "english": "Eight",
+    "romanization": "aath",
+    "category": "numbers",
+    "imageFile": "/images/numbers/eight.svg",
+    "audioFile": "/audio/words/eight.mp3"
+  },
+  {
+    "id": "number-9",
+    "hindi": "नौ",
+    "english": "Nine",
+    "romanization": "nau",
+    "category": "numbers",
+    "imageFile": "/images/numbers/nine.svg",
+    "audioFile": "/audio/words/nine.mp3"
+  },
+  {
+    "id": "number-10",
+    "hindi": "दस",
+    "english": "Ten",
+    "romanization": "das",
+    "category": "numbers",
+    "imageFile": "/images/numbers/ten.svg",
+    "audioFile": "/audio/words/ten.mp3"
+  },
+  {
+    "id": "family-1",
+    "hindi": "माँ",
+    "english": "Mother",
+    "romanization": "maa",
+    "category": "family",
+    "imageFile": "/images/family/mother.svg",
+    "audioFile": "/audio/words/mother.mp3"
+  },
+  {
+    "id": "family-2",
+    "hindi": "पिता",
+    "english": "Father",
+    "romanization": "pita",
+    "category": "family",
+    "imageFile": "/images/family/father.svg",
+    "audioFile": "/audio/words/father.mp3"
+  },
+  {
+    "id": "family-3",
+    "hindi": "भाई",
+    "english": "Brother",
+    "romanization": "bhai",
+    "category": "family",
+    "imageFile": "/images/family/brother.svg",
+    "audioFile": "/audio/words/brother.mp3"
+  },
+  {
+    "id": "family-4",
+    "hindi": "बहन",
+    "english": "Sister",
+    "romanization": "bahan",
+    "category": "family",
+    "imageFile": "/images/family/sister.svg",
+    "audioFile": "/audio/words/sister.mp3"
+  },
+  {
+    "id": "family-5",
+    "hindi": "दादा",
+    "english": "Grandfather",
+    "romanization": "daada",
+    "category": "family",
+    "imageFile": "/images/family/grandfather.svg",
+    "audioFile": "/audio/words/grandfather.mp3"
+  },
+  {
+    "id": "family-6",
+    "hindi": "दादी",
+    "english": "Grandmother",
+    "romanization": "daadi",
+    "category": "family",
+    "imageFile": "/images/family/grandmother.svg",
+    "audioFile": "/audio/words/grandmother.mp3"
+  },
+  {
+    "id": "family-7",
+    "hindi": "बेटा",
+    "english": "Son",
+    "romanization": "beta",
+    "category": "family",
+    "imageFile": "/images/family/son.svg",
+    "audioFile": "/audio/words/son.mp3"
+  },
+  {
+    "id": "family-8",
+    "hindi": "बेटी",
+    "english": "Daughter",
+    "romanization": "beti",
+    "category": "family",
+    "imageFile": "/images/family/daughter.svg",
+    "audioFile": "/audio/words/daughter.mp3"
+  }
+]

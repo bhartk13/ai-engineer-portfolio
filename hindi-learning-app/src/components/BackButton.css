@@ -1,0 +1,50 @@
+.back-button {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  z-index: 1000;
+}
+
+.back-button:hover {
+  background: var(--color-primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.back-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.back-button-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.back-button-text {
+  font-family: var(--font-primary);
+}
+
+@media (max-width: 768px) {
+  .back-button {
+    padding: 10px 16px;
+    font-size: 1rem;
+  }
+  
+  .back-button-icon {
+    font-size: 1.2rem;
+  }
+}

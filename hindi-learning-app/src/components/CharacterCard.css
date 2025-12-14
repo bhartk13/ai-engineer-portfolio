@@ -1,0 +1,95 @@
+.character-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  min-height: 140px;
+  user-select: none;
+}
+
+.character-card:hover {
+  transform: translateY(-8px) scale(1.05);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.character-card:active,
+.character-card.playing {
+  transform: scale(0.95);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.character-hindi {
+  font-size: 3.5rem;
+  font-weight: bold;
+  color: #ffffff;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+  margin-bottom: 0.5rem;
+  line-height: 1;
+}
+
+.character-romanization {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  text-transform: lowercase;
+  background-color: rgba(0, 0, 0, 0.15);
+  padding: 0.3rem 0.8rem;
+  border-radius: 12px;
+  letter-spacing: 0.5px;
+}
+
+/* Accessibility: Focus state */
+.character-card:focus {
+  outline: 3px solid #333;
+  outline-offset: 2px;
+}
+
+/* Animation for playing state */
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.character-card.playing {
+  animation: pulse 0.3s ease-in-out;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .character-card {
+    min-height: 120px;
+    padding: 1rem;
+  }
+
+  .character-hindi {
+    font-size: 2.8rem;
+  }
+
+  .character-romanization {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .character-card {
+    min-height: 100px;
+    padding: 0.8rem;
+  }
+
+  .character-hindi {
+    font-size: 2.2rem;
+  }
+
+  .character-romanization {
+    font-size: 0.9rem;
+  }
+}

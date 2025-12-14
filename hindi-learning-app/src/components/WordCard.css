@@ -1,0 +1,151 @@
+.word-card {
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+  border-radius: 20px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border: 4px solid transparent;
+  user-select: none;
+}
+
+.word-card:hover {
+  transform: translateY(-8px) scale(1.03);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+  border-color: #FF6B6B;
+}
+
+.word-card:active,
+.word-card.playing {
+  transform: scale(0.97);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.word-image-container {
+  width: 100%;
+  height: 180px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.word-image-container.no-image::after {
+  content: '🖼️';
+  font-size: 4rem;
+  opacity: 0.5;
+}
+
+.word-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.word-card:hover .word-image {
+  transform: scale(1.1);
+}
+
+.word-content {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
+  text-align: center;
+}
+
+.word-hindi {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #333;
+  line-height: 1.2;
+}
+
+.word-romanization {
+  font-size: 1rem;
+  color: #666;
+  font-style: italic;
+  background-color: #f0f0f0;
+  padding: 0.3rem 0.8rem;
+  border-radius: 12px;
+}
+
+.word-english {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #555;
+  margin-top: 0.3rem;
+}
+
+/* Accessibility: Focus state */
+.word-card:focus {
+  outline: 3px solid #333;
+  outline-offset: 2px;
+}
+
+/* Animation for playing state */
+@keyframes wordPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+.word-card.playing {
+  animation: wordPulse 0.3s ease-in-out;
+  border-color: #4ECDC4;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .word-image-container {
+    height: 150px;
+  }
+
+  .word-content {
+    padding: 1.2rem;
+  }
+
+  .word-hindi {
+    font-size: 2rem;
+  }
+
+  .word-romanization {
+    font-size: 0.9rem;
+  }
+
+  .word-english {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .word-image-container {
+    height: 120px;
+  }
+
+  .word-content {
+    padding: 1rem;
+    gap: 0.4rem;
+  }
+
+  .word-hindi {
+    font-size: 1.8rem;
+  }
+
+  .word-romanization {
+    font-size: 0.85rem;
+  }
+
+  .word-english {
+    font-size: 1rem;
+  }
+}

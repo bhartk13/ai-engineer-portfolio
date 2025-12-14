@@ -1,0 +1,296 @@
+[
+  {
+    "hindi": "अ",
+    "romanization": "a",
+    "audioFile": "/audio/vowels/a.mp3",
+    "type": "vowel",
+    "color": "#FF6B6B"
+  },
+  {
+    "hindi": "आ",
+    "romanization": "aa",
+    "audioFile": "/audio/vowels/aa.mp3",
+    "type": "vowel",
+    "color": "#4ECDC4"
+  },
+  {
+    "hindi": "इ",
+    "romanization": "i",
+    "audioFile": "/audio/vowels/i.mp3",
+    "type": "vowel",
+    "color": "#45B7D1"
+  },
+  {
+    "hindi": "ई",
+    "romanization": "ee",
+    "audioFile": "/audio/vowels/ee.mp3",
+    "type": "vowel",
+    "color": "#FFA07A"
+  },
+  {
+    "hindi": "उ",
+    "romanization": "u",
+    "audioFile": "/audio/vowels/u.mp3",
+    "type": "vowel",
+    "color": "#98D8C8"
+  },
+  {
+    "hindi": "ऊ",
+    "romanization": "oo",
+    "audioFile": "/audio/vowels/oo.mp3",
+    "type": "vowel",
+    "color": "#F7DC6F"
+  },
+  {
+    "hindi": "ए",
+    "romanization": "e",
+    "audioFile": "/audio/vowels/e.mp3",
+    "type": "vowel",
+    "color": "#BB8FCE"
+  },
+  {
+    "hindi": "ऐ",
+    "romanization": "ai",
+    "audioFile": "/audio/vowels/ai.mp3",
+    "type": "vowel",
+    "color": "#85C1E2"
+  },
+  {
+    "hindi": "ओ",
+    "romanization": "o",
+    "audioFile": "/audio/vowels/o.mp3",
+    "type": "vowel",
+    "color": "#F8B88B"
+  },
+  {
+    "hindi": "औ",
+    "romanization": "au",
+    "audioFile": "/audio/vowels/au.mp3",
+    "type": "vowel",
+    "color": "#FAD7A0"
+  },
+  {
+    "hindi": "अं",
+    "romanization": "am",
+    "audioFile": "/audio/vowels/am.mp3",
+    "type": "vowel",
+    "color": "#AED6F1"
+  },
+  {
+    "hindi": "अः",
+    "romanization": "ah",
+    "audioFile": "/audio/vowels/ah.mp3",
+    "type": "vowel",
+    "color": "#A9DFBF"
+  },
+  {
+    "hindi": "क",
+    "romanization": "ka",
+    "audioFile": "/audio/consonants/ka.mp3",
+    "type": "consonant",
+    "color": "#FF6B9D"
+  },
+  {
+    "hindi": "ख",
+    "romanization": "kha",
+    "audioFile": "/audio/consonants/kha.mp3",
+    "type": "consonant",
+    "color": "#C44569"
+  },
+  {
+    "hindi": "ग",
+    "romanization": "ga",
+    "audioFile": "/audio/consonants/ga.mp3",
+    "type": "consonant",
+    "color": "#F8B500"
+  },
+  {
+    "hindi": "घ",
+    "romanization": "gha",
+    "audioFile": "/audio/consonants/gha.mp3",
+    "type": "consonant",
+    "color": "#6C5CE7"
+  },
+  {
+    "hindi": "च",
+    "romanization": "cha",
+    "audioFile": "/audio/consonants/cha.mp3",
+    "type": "consonant",
+    "color": "#00B894"
+  },
+  {
+    "hindi": "छ",
+    "romanization": "chha",
+    "audioFile": "/audio/consonants/chha.mp3",
+    "type": "consonant",
+    "color": "#FD79A8"
+  },
+  {
+    "hindi": "ज",
+    "romanization": "ja",
+    "audioFile": "/audio/consonants/ja.mp3",
+    "type": "consonant",
+    "color": "#FDCB6E"
+  },
+  {
+    "hindi": "झ",
+    "romanization": "jha",
+    "audioFile": "/audio/consonants/jha.mp3",
+    "type": "consonant",
+    "color": "#E17055"
+  },
+  {
+    "hindi": "ट",
+    "romanization": "ta",
+    "audioFile": "/audio/consonants/ta.mp3",
+    "type": "consonant",
+    "color": "#74B9FF"
+  },
+  {
+    "hindi": "ठ",
+    "romanization": "tha",
+    "audioFile": "/audio/consonants/tha.mp3",
+    "type": "consonant",
+    "color": "#A29BFE"
+  },
+  {
+    "hindi": "ड",
+    "romanization": "da",
+    "audioFile": "/audio/consonants/da.mp3",
+    "type": "consonant",
+    "color": "#55EFC4"
+  },
+  {
+    "hindi": "ढ",
+    "romanization": "dha",
+    "audioFile": "/audio/consonants/dha.mp3",
+    "type": "consonant",
+    "color": "#81ECEC"
+  },
+  {
+    "hindi": "त",
+    "romanization": "ta",
+    "audioFile": "/audio/consonants/ta2.mp3",
+    "type": "consonant",
+    "color": "#FAB1A0"
+  },
+  {
+    "hindi": "थ",
+    "romanization": "tha",
+    "audioFile": "/audio/consonants/tha2.mp3",
+    "type": "consonant",
+    "color": "#FF7675"
+  },
+  {
+    "hindi": "द",
+    "romanization": "da",
+    "audioFile": "/audio/consonants/da2.mp3",
+    "type": "consonant",
+    "color": "#FD79A8"
+  },
+  {
+    "hindi": "ध",
+    "romanization": "dha",
+    "audioFile": "/audio/consonants/dha2.mp3",
+    "type": "consonant",
+    "color": "#FDCB6E"
+  },
+  {
+    "hindi": "न",
+    "romanization": "na",
+    "audioFile": "/audio/consonants/na.mp3",
+    "type": "consonant",
+    "color": "#6C5CE7"
+  },
+  {
+    "hindi": "प",
+    "romanization": "pa",
+    "audioFile": "/audio/consonants/pa.mp3",
+    "type": "consonant",
+    "color": "#00B894"
+  },
+  {
+    "hindi": "फ",
+    "romanization": "pha",
+    "audioFile": "/audio/consonants/pha.mp3",
+    "type": "consonant",
+    "color": "#00CEC9"
+  },
+  {
+    "hindi": "ब",
+    "romanization": "ba",
+    "audioFile": "/audio/consonants/ba.mp3",
+    "type": "consonant",
+    "color": "#0984E3"
+  },
+  {
+    "hindi": "भ",
+    "romanization": "bha",
+    "audioFile": "/audio/consonants/bha.mp3",
+    "type": "consonant",
+    "color": "#74B9FF"
+  },
+  {
+    "hindi": "म",
+    "romanization": "ma",
+    "audioFile": "/audio/consonants/ma.mp3",
+    "type": "consonant",
+    "color": "#A29BFE"
+  },
+  {
+    "hindi": "य",
+    "romanization": "ya",
+    "audioFile": "/audio/consonants/ya.mp3",
+    "type": "consonant",
+    "color": "#FD79A8"
+  },
+  {
+    "hindi": "र",
+    "romanization": "ra",
+    "audioFile": "/audio/consonants/ra.mp3",
+    "type": "consonant",
+    "color": "#FDCB6E"
+  },
+  {
+    "hindi": "ल",
+    "romanization": "la",
+    "audioFile": "/audio/consonants/la.mp3",
+    "type": "consonant",
+    "color": "#55EFC4"
+  },
+  {
+    "hindi": "व",
+    "romanization": "va",
+    "audioFile": "/audio/consonants/va.mp3",
+    "type": "consonant",
+    "color": "#81ECEC"
+  },
+  {
+    "hindi": "श",
+    "romanization": "sha",
+    "audioFile": "/audio/consonants/sha.mp3",
+    "type": "consonant",
+    "color": "#FAB1A0"
+  },
+  {
+    "hindi": "ष",
+    "romanization": "shha",
+    "audioFile": "/audio/consonants/shha.mp3",
+    "type": "consonant",
+    "color": "#FF7675"
+  },
+  {
+    "hindi": "स",
+    "romanization": "sa",
+    "audioFile": "/audio/consonants/sa.mp3",
+    "type": "consonant",
+    "color": "#E17055"
+  },
+  {
+    "hindi": "ह",
+    "romanization": "ha",
+    "audioFile": "/audio/consonants/ha.mp3",
+    "type": "consonant",
+    "color": "#DFE6E9"
+  }
+]

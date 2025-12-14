@@ -1,0 +1,164 @@
+[
+  {
+    "id": "greeting-1",
+    "hindi": "नमस्ते",
+    "english": "Hello",
+    "romanization": "namaste",
+    "category": "greetings",
+    "icon": "👋",
+    "audioFile": "/audio/phrases/namaste.mp3"
+  },
+  {
+    "id": "greeting-2",
+    "hindi": "सुप्रभात",
+    "english": "Good morning",
+    "romanization": "suprabhat",
+    "category": "greetings",
+    "icon": "🌅",
+    "audioFile": "/audio/phrases/suprabhat.mp3"
+  },
+  {
+    "id": "greeting-3",
+    "hindi": "शुभ रात्रि",
+    "english": "Good night",
+    "romanization": "shubh raatri",
+    "category": "greetings",
+    "icon": "🌙",
+    "audioFile": "/audio/phrases/shubh-raatri.mp3"
+  },
+  {
+    "id": "greeting-4",
+    "hindi": "अलविदा",
+    "english": "Goodbye",
+    "romanization": "alvida",
+    "category": "greetings",
+    "icon": "👋",
+    "audioFile": "/audio/phrases/alvida.mp3"
+  },
+  {
+    "id": "greeting-5",
+    "hindi": "फिर मिलेंगे",
+    "english": "See you later",
+    "romanization": "phir milenge",
+    "category": "greetings",
+    "icon": "😊",
+    "audioFile": "/audio/phrases/phir-milenge.mp3"
+  },
+  {
+    "id": "polite-1",
+    "hindi": "धन्यवाद",
+    "english": "Thank you",
+    "romanization": "dhanyavaad",
+    "category": "polite",
+    "icon": "🙏",
+    "audioFile": "/audio/phrases/dhanyavaad.mp3"
+  },
+  {
+    "id": "polite-2",
+    "hindi": "कृपया",
+    "english": "Please",
+    "romanization": "kripya",
+    "category": "polite",
+    "icon": "🙏",
+    "audioFile": "/audio/phrases/kripya.mp3"
+  },
+  {
+    "id": "polite-3",
+    "hindi": "माफ़ कीजिए",
+    "english": "Excuse me / Sorry",
+    "romanization": "maaf kijiye",
+    "category": "polite",
+    "icon": "🙇",
+    "audioFile": "/audio/phrases/maaf-kijiye.mp3"
+  },
+  {
+    "id": "polite-4",
+    "hindi": "कोई बात नहीं",
+    "english": "No problem",
+    "romanization": "koi baat nahin",
+    "category": "polite",
+    "icon": "😊",
+    "audioFile": "/audio/phrases/koi-baat-nahin.mp3"
+  },
+  {
+    "id": "polite-5",
+    "hindi": "स्वागत है",
+    "english": "You're welcome",
+    "romanization": "swaagat hai",
+    "category": "polite",
+    "icon": "🤗",
+    "audioFile": "/audio/phrases/swaagat-hai.mp3"
+  },
+  {
+    "id": "question-1",
+    "hindi": "आप कैसे हैं?",
+    "english": "How are you?",
+    "romanization": "aap kaise hain?",
+    "category": "questions",
+    "icon": "❓",
+    "audioFile": "/audio/phrases/aap-kaise-hain.mp3"
+  },
+  {
+    "id": "question-2",
+    "hindi": "आपका नाम क्या है?",
+    "english": "What is your name?",
+    "romanization": "aapka naam kya hai?",
+    "category": "questions",
+    "icon": "❓",
+    "audioFile": "/audio/phrases/aapka-naam-kya-hai.mp3"
+  },
+  {
+    "id": "question-3",
+    "hindi": "यह क्या है?",
+    "english": "What is this?",
+    "romanization": "yah kya hai?",
+    "category": "questions",
+    "icon": "❓",
+    "audioFile": "/audio/phrases/yah-kya-hai.mp3"
+  },
+  {
+    "id": "question-4",
+    "hindi": "कहाँ है?",
+    "english": "Where is it?",
+    "romanization": "kahaan hai?",
+    "category": "questions",
+    "icon": "❓",
+    "audioFile": "/audio/phrases/kahaan-hai.mp3"
+  },
+  {
+    "id": "question-5",
+    "hindi": "क्या आप हिंदी बोलते हैं?",
+    "english": "Do you speak Hindi?",
+    "romanization": "kya aap hindi bolte hain?",
+    "category": "questions",
+    "icon": "❓",
+    "audioFile": "/audio/phrases/kya-aap-hindi-bolte-hain.mp3"
+  },
+  {
+    "id": "response-1",
+    "hindi": "मैं ठीक हूँ",
+    "english": "I am fine",
+    "romanization": "main theek hoon",
+    "category": "greetings",
+    "icon": "😊",
+    "audioFile": "/audio/phrases/main-theek-hoon.mp3"
+  },
+  {
+    "id": "response-2",
+    "hindi": "हाँ",
+    "english": "Yes",
+    "romanization": "haan",
+    "category": "polite",
+    "icon": "✅",
+    "audioFile": "/audio/phrases/haan.mp3"
+  },
+  {
+    "id": "response-3",
+    "hindi": "नहीं",
+    "english": "No",
+    "romanization": "nahin",
+    "category": "polite",
+    "icon": "❌",
+    "audioFile": "/audio/phrases/nahin.mp3"
+  }
+]

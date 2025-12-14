@@ -1,0 +1,244 @@
+.main-menu {
+  text-align: center;
+  animation: fadeIn 0.5s ease;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.app-title {
+  font-size: var(--font-size-3xl);
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-md);
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+  animation: bounceIn 0.6s ease;
+}
+
+.app-subtitle {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-2xl);
+  font-weight: 500;
+}
+
+.menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  align-items: center;
+  width: 100%;
+}
+
+.menu-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 400px;
+  padding: var(--spacing-xl);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: white;
+  transition: all var(--transition-base);
+  position: relative;
+  overflow: hidden;
+  animation: slideInUp 0.5s ease backwards;
+}
+
+.menu-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 100%);
+  opacity: 0;
+  transition: opacity var(--transition-base);
+}
+
+.menu-button:hover::before {
+  opacity: 1;
+}
+
+.menu-button:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: var(--shadow-lg);
+}
+
+.menu-button:active {
+  transform: translateY(-4px) scale(0.98);
+  transition: all var(--transition-fast);
+}
+
+.button-icon {
+  font-size: 4rem;
+  margin-bottom: var(--spacing-md);
+  display: block;
+  animation: float 3s ease-in-out infinite;
+}
+
+.button-text {
+  font-size: var(--font-size-2xl);
+  margin-bottom: var(--spacing-sm);
+  display: block;
+}
+
+.button-description {
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  opacity: 0.95;
+  display: block;
+}
+
+/* Individual button colors */
+.alphabet-button {
+  background: linear-gradient(135deg, #A8E6CF 0%, #7FD8A8 100%);
+  animation-delay: 0.1s;
+}
+
+.alphabet-button:hover {
+  background: linear-gradient(135deg, #7FD8A8 0%, #6BC99A 100%);
+}
+
+.words-button {
+  background: linear-gradient(135deg, #FFD3B6 0%, #FFAA85 100%);
+  animation-delay: 0.2s;
+}
+
+.words-button:hover {
+  background: linear-gradient(135deg, #FFAA85 0%, #FF9670 100%);
+}
+
+.phrases-button {
+  background: linear-gradient(135deg, #FFAAA5 0%, #FF8B85 100%);
+  animation-delay: 0.3s;
+}
+
+.phrases-button:hover {
+  background: linear-gradient(135deg, #FF8B85 0%, #FF7670 100%);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Responsive Design */
+@media (min-width: 768px) {
+  .menu-buttons {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .menu-button {
+    max-width: 280px;
+    min-height: 320px;
+  }
+}
+
+@media (max-width: 767px) {
+  .app-title {
+    font-size: var(--font-size-2xl);
+  }
+  
+  .app-subtitle {
+    font-size: var(--font-size-md);
+    margin-bottom: var(--spacing-xl);
+  }
+  
+  .menu-button {
+    padding: var(--spacing-lg);
+    min-height: 200px;
+  }
+  
+  .button-icon {
+    font-size: 3rem;
+  }
+  
+  .button-text {
+    font-size: var(--font-size-xl);
+  }
+  
+  .button-description {
+    font-size: var(--font-size-sm);
+  }
+}
+
+@media (max-width: 480px) {
+  .app-title {
+    font-size: var(--font-size-xl);
+  }
+  
+  .app-subtitle {
+    font-size: var(--font-size-sm);
+  }
+  
+  .menu-button {
+    min-height: 180px;
+  }
+  
+  .button-icon {
+    font-size: 2.5rem;
+  }
+}
+
+/* Accessibility - Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .menu-button,
+  .app-title,
+  .main-menu {
+    animation: none;
+  }
+  
+  .button-icon {
+    animation: none;
+  }
+  
+  .menu-button:hover {
+    transform: none;
+  }
+}
