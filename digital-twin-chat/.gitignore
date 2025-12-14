@@ -7,6 +7,8 @@
 .DS_Store
 Thumbs.db
 
+lambda-package/
+
 # IDE
 .vscode/
 .idea/
