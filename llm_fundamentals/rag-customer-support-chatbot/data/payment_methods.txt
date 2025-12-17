@@ -1,0 +1,3 @@
+PAYMENT METHODS: Visa, Mastercard, Amex, Discover, PayPal, Apple Pay, Google Pay
+Security: 256-bit SSL encryption, no complete card storage
+International: Accepted with automatic currency conversion

@@ -1,0 +1,4 @@
+TECH SUPPORT: Login issues - verify credentials, clear cache
+Website issues - refresh page, try different browser
+App problems - restart app, check updates
+Contact: tech-support@company.com or 1-800-TECH-HELP
