@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A2A Platform — Agent Orchestration Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #18181f;
+    --border: #25252f;
+    --border2: #32323f;
+    --text: #e8e8f0;
+    --text2: #8888a0;
+    --text3: #5555680;
+    --accent: #4f8eff;
+    --accent2: #7c5cfc;
+    --green: #22d3a0;
+    --yellow: #f5c842;
+    --red: #ff4d6a;
+    --orange: #ff8c42;
+    --cyan: #22d4e8;
+    --glow: rgba(79,142,255,0.15);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 14px; }
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  /* Grid noise background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(79,142,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(79,142,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  /* ── Layout ── */
+  .layout { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; position: relative; z-index: 1; }
+  /* ── Sidebar ── */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+  .logo {
+    padding: 20px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .logo-text { font-size: 13px; font-weight: 600; letter-spacing: 0.05em; color: var(--text); }
+  .logo-sub { font-size: 10px; color: var(--text2); font-family: 'IBM Plex Mono', monospace; }
+  nav { padding: 12px 8px; flex: 1; }
+  .nav-section { margin-bottom: 20px; }
+  .nav-label { font-size: 10px; font-weight: 600; letter-spacing: 0.12em; color: var(--text2); text-transform: uppercase; padding: 0 10px 8px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 6px;
+    cursor: pointer; transition: all 0.15s;
+    font-size: 13px; color: var(--text2);
+    border: 1px solid transparent;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active {
+    background: var(--glow);
+    color: var(--accent);
+    border-color: rgba(79,142,255,0.25);
+  }
+  .nav-item .badge {
+    margin-left: auto; font-size: 10px; font-family: 'IBM Plex Mono', monospace;
+    background: var(--surface2); border-radius: 10px;
+    padding: 1px 7px; color: var(--text2);
+  }
+  .nav-item.active .badge { background: rgba(79,142,255,0.2); color: var(--accent); }
+  .sidebar-footer {
+    padding: 14px 18px; border-top: 1px solid var(--border);
+    font-size: 11px; color: var(--text2);
+    font-family: 'IBM Plex Mono', monospace;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
+  /* ── Main ── */
+  main { display: flex; flex-direction: column; overflow: hidden; }
+  .topbar {
+    height: 56px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 24px;
+    gap: 16px; background: var(--surface);
+  }
+  .topbar-title { font-size: 15px; font-weight: 600; flex: 1; }
+  .topbar-actions { display: flex; gap: 8px; }
+  .btn {
+    padding: 7px 14px; border-radius: 6px; font-size: 12px;
+    font-weight: 500; cursor: pointer; transition: all 0.15s;
+    border: 1px solid var(--border2); background: var(--surface2);
+    color: var(--text); font-family: 'IBM Plex Sans', sans-serif;
+  }
+  .btn:hover { background: var(--border); }
+  .btn-primary {
+    background: var(--accent); border-color: var(--accent);
+    color: #fff;
+  }
+  .btn-primary:hover { background: #3a78f0; }
+  .content { flex: 1; overflow-y: auto; padding: 24px; }
+  /* ── Metric Cards ── */
+  .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+  .metric-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 18px;
+    position: relative; overflow: hidden;
+  }
+  .metric-card::after {
+    content: ''; position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+  }
+  .metric-card.blue::after { background: linear-gradient(90deg, var(--accent), transparent); }
+  .metric-card.purple::after { background: linear-gradient(90deg, var(--accent2), transparent); }
+  .metric-card.green::after { background: linear-gradient(90deg, var(--green), transparent); }
+  .metric-card.yellow::after { background: linear-gradient(90deg, var(--yellow), transparent); }
+  .metric-label { font-size: 11px; color: var(--text2); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 8px; }
+  .metric-value { font-size: 28px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; line-height: 1; margin-bottom: 6px; }
+  .metric-card.blue .metric-value { color: var(--accent); }
+  .metric-card.purple .metric-value { color: var(--accent2); }
+  .metric-card.green .metric-value { color: var(--green); }
+  .metric-card.yellow .metric-value { color: var(--yellow); }
+  .metric-sub { font-size: 11px; color: var(--text2); }
+  /* ── Two-col grid ── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 24px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; margin-bottom: 24px; }
+  /* ── Panels ── */
+  .panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden;
+  }
+  .panel-header {
+    padding: 14px 18px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px;
+  }
+  .panel-title { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .panel-tag {
+    font-size: 10px; font-family: 'IBM Plex Mono', monospace;
+    padding: 2px 8px; border-radius: 4px;
+    background: var(--surface2); color: var(--text2); border: 1px solid var(--border);
+  }
+  .panel-body { padding: 18px; }
+  /* ── Agent List ── */
+  .agent-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 0; border-bottom: 1px solid var(--border);
+  }
+  .agent-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .agent-icon {
+    width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .agent-info { flex: 1; min-width: 0; }
+  .agent-name { font-size: 13px; font-weight: 500; }
+  .agent-meta { font-size: 11px; color: var(--text2); font-family: 'IBM Plex Mono', monospace; }
+  .agent-status {
+    font-size: 10px; font-weight: 600; padding: 3px 8px;
+    border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .agent-status.healthy { background: rgba(34,211,160,0.12); color: var(--green); }
+  .agent-status.unhealthy { background: rgba(255,77,106,0.12); color: var(--red); }
+  .agent-status.unknown { background: rgba(136,136,160,0.12); color: var(--text2); }
+  /* ── Chain Visualizer ── */
+  .chain-flow {
+    display: flex; align-items: center; gap: 0;
+    overflow-x: auto; padding: 8px 0;
+  }
+  .chain-node {
+    flex-shrink: 0; background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 8px; padding: 10px 14px;
+    min-width: 120px; text-align: center;
+    cursor: pointer; transition: all 0.2s;
+    position: relative;
+  }
+  .chain-node:hover { border-color: var(--accent); box-shadow: 0 0 0 2px var(--glow); }
+  .chain-node.active { border-color: var(--green); background: rgba(34,211,160,0.05); }
+  .chain-node.running { border-color: var(--yellow); background: rgba(245,200,66,0.05); animation: pulse 1.5s infinite; }
+  .chain-node.failed { border-color: var(--red); background: rgba(255,77,106,0.05); }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+  .chain-node-icon { font-size: 20px; margin-bottom: 4px; }
+  .chain-node-name { font-size: 11px; font-weight: 500; }
+  .chain-node-fw { font-size: 10px; color: var(--text2); font-family: 'IBM Plex Mono', monospace; }
+  .chain-arrow {
+    flex-shrink: 0; width: 40px; height: 2px;
+    background: linear-gradient(90deg, var(--border2), var(--accent), var(--border2));
+    position: relative;
+  }
+  .chain-arrow::after {
+    content: '▶'; position: absolute;
+    right: -5px; top: 50%; transform: translateY(-50%);
+    color: var(--accent); font-size: 10px;
+  }
+  /* ── MCP Panel ── */
+  .mcp-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+  }
+  .mcp-item:last-child { border-bottom: none; }
+  .mcp-icon { font-size: 18px; width: 32px; text-align: center; }
+  .mcp-info { flex: 1; }
+  .mcp-name { font-size: 12px; font-weight: 500; }
+  .mcp-detail { font-size: 11px; color: var(--text2); font-family: 'IBM Plex Mono', monospace; }
+  .mcp-count { font-size: 11px; color: var(--cyan); font-family: 'IBM Plex Mono', monospace; }
+  /* ── Deployment Panel ── */
+  .deploy-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px; background: var(--surface2);
+    border-radius: 7px; margin-bottom: 8px;
+    border: 1px solid var(--border);
+  }
+  .deploy-item:last-child { margin-bottom: 0; }
+  .deploy-platform { font-size: 18px; }
+  .deploy-info { flex: 1; }
+  .deploy-name { font-size: 12px; font-weight: 500; }
+  .deploy-meta { font-size: 11px; color: var(--text2); font-family: 'IBM Plex Mono', monospace; }
+  .deploy-replicas { font-size: 11px; text-align: right; }
+  .deploy-replicas-num { font-family: 'IBM Plex Mono', monospace; color: var(--accent); font-weight: 600; font-size: 14px; }
+  /* ── Console ── */
+  .console {
+    background: #0a0a0a; border-radius: 8px;
+    padding: 14px; font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; line-height: 1.7;
+    max-height: 200px; overflow-y: auto;
+    border: 1px solid var(--border);
+  }
+  .log-line { display: flex; gap: 10px; }
+  .log-time { color: #555; flex-shrink: 0; }
+  .log-level-info { color: var(--cyan); }
+  .log-level-success { color: var(--green); }
+  .log-level-warn { color: var(--yellow); }
+  .log-level-error { color: var(--red); }
+  .log-msg { color: var(--text2); }
+  /* ── Chain Builder ── */
+  .chain-builder { display: flex; flex-direction: column; gap: 12px; }
+  .chain-builder-step {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px; background: var(--surface2); border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .step-num {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; flex-shrink: 0;
+  }
+  .step-select {
+    flex: 1; background: var(--surface); border: 1px solid var(--border2);
+    color: var(--text); padding: 7px 10px; border-radius: 6px;
+    font-family: 'IBM Plex Sans', sans-serif; font-size: 12px;
+    cursor: pointer;
+  }
+  .step-select:focus { outline: none; border-color: var(--accent); }
+  .step-delete {
+    width: 28px; height: 28px; border-radius: 6px;
+    background: rgba(255,77,106,0.1); border: 1px solid rgba(255,77,106,0.2);
+    color: var(--red); cursor: pointer; display: flex; align-items: center;
+    justify-content: center; font-size: 14px; transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .step-delete:hover { background: rgba(255,77,106,0.2); }
+  /* ── Framework badges ── */
+  .fw-badge {
+    font-size: 10px; font-family: 'IBM Plex Mono', monospace;
+    padding: 2px 7px; border-radius: 4px; font-weight: 500;
+  }
+  .fw-adk { background: rgba(79,142,255,0.12); color: var(--accent); }
+  .fw-langchain { background: rgba(34,211,160,0.12); color: var(--green); }
+  .fw-autogen { background: rgba(124,92,252,0.12); color: var(--accent2); }
+  .fw-crewai { background: rgba(245,200,66,0.12); color: var(--yellow); }
+  .fw-custom { background: rgba(255,140,66,0.12); color: var(--orange); }
+  /* ── Input ── */
+  .input-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+  .input-label { font-size: 11px; color: var(--text2); font-weight: 500; }
+  .input-field {
+    background: var(--surface2); border: 1px solid var(--border2);
+    color: var(--text); padding: 8px 12px; border-radius: 6px;
+    font-family: 'IBM Plex Sans', sans-serif; font-size: 12px;
+    width: 100%; transition: border-color 0.15s;
+  }
+  .input-field:focus { outline: none; border-color: var(--accent); }
+  textarea.input-field { min-height: 80px; resize: vertical; }
+  /* ── Result card ── */
+  .result-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px; margin-top: 14px;
+    display: none;
+  }
+  .result-card.visible { display: block; }
+  .result-header { font-size: 11px; color: var(--text2); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .result-body { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--green); white-space: pre-wrap; }
+  /* ── Tab system ── */
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin: -18px -18px 18px; }
+  .tab {
+    padding: 12px 18px; font-size: 12px; cursor: pointer;
+    color: var(--text2); border-bottom: 2px solid transparent;
+    margin-bottom: -1px; transition: all 0.15s;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  /* ── Progress ── */
+  .progress-bar {
+    height: 3px; background: var(--border);
+    border-radius: 2px; overflow: hidden; margin-top: 6px;
+  }
+  .progress-fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
+  /* ── Tooltip ── */
+  [data-tip] { position: relative; }
+  [data-tip]::before {
+    content: attr(data-tip);
+    position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+    background: var(--surface2); border: 1px solid var(--border2);
+    padding: 4px 8px; border-radius: 4px; font-size: 11px;
+    white-space: nowrap; pointer-events: none; opacity: 0;
+    transition: opacity 0.15s; z-index: 100;
+  }
+  [data-tip]:hover::before { opacity: 1; }
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+  /* ── Views ── */
+  .view { display: none; }
+  .view.active { display: block; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-icon">⬡</div>
+      <div>
+        <div class="logo-text">A2A Platform</div>
+        <div class="logo-sub">v1.0.0 · production</div>
+      </div>
+    </div>
+    <nav>
+      <div class="nav-section">
+        <div class="nav-label">Overview</div>
+        <div class="nav-item active" onclick="showView('dashboard')">
+          <span>◈</span> Dashboard <span class="badge">live</span>
+        </div>
+        <div class="nav-item" onclick="showView('metrics')">
+          <span>◉</span> Metrics
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Agents</div>
+        <div class="nav-item" onclick="showView('agents')">
+          <span>⬡</span> Agent Registry <span class="badge" id="agent-count-badge">4</span>
+        </div>
+        <div class="nav-item" onclick="showView('chains')">
+          <span>⛓</span> Chain Builder
+        </div>
+        <div class="nav-item" onclick="showView('execute')">
+          <span>▷</span> Execute Chain
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Data</div>
+        <div class="nav-item" onclick="showView('mcp')">
+          <span>⬘</span> MCP Sources <span class="badge" id="mcp-count-badge">3</span>
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Infrastructure</div>
+        <div class="nav-item" onclick="showView('deploy')">
+          <span>⬕</span> IBM Agent Stack
+        </div>
+        <div class="nav-item" onclick="showView('logs')">
+          <span>≡</span> Logs
+        </div>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="status-dot"></div>
+      Platform healthy
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main>
+    <div class="topbar">
+      <div class="topbar-title" id="view-title">Dashboard</div>
+      <div class="topbar-actions">
+        <button class="btn" onclick="refreshAll()">↺ Refresh</button>
+        <button class="btn btn-primary" onclick="showView('execute')">▷ Execute Chain</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ── Dashboard View ── -->
+      <div class="view active" id="view-dashboard">
+        <div class="metrics-grid">
+          <div class="metric-card blue">
+            <div class="metric-label">Active Agents</div>
+            <div class="metric-value" id="m-agents">4</div>
+            <div class="metric-sub">3 healthy · 1 unknown</div>
+          </div>
+          <div class="metric-card purple">
+            <div class="metric-label">Chain Executions</div>
+            <div class="metric-value" id="m-chains">0</div>
+            <div class="metric-sub">0 running · 0 failed</div>
+          </div>
+          <div class="metric-card green">
+            <div class="metric-label">MCP Connections</div>
+            <div class="metric-value" id="m-mcp">3</div>
+            <div class="metric-sub">12 tools · 4 resources</div>
+          </div>
+          <div class="metric-card yellow">
+            <div class="metric-label">Deployments</div>
+            <div class="metric-value" id="m-deploys">3</div>
+            <div class="metric-sub">2 k8s · 1 code-engine</div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <!-- Agent Status -->
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">⬡ Registered Agents</div>
+              <span class="panel-tag">A2A Protocol</span>
+            </div>
+            <div class="panel-body" id="agent-list">
+              <!-- populated by JS -->
+            </div>
+          </div>
+
+          <!-- Chain Flow Preview -->
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">⛓ Sequential Chain Preview</div>
+              <span class="panel-tag">ADK</span>
+            </div>
+            <div class="panel-body">
+              <div style="font-size:11px; color:var(--text2); margin-bottom:14px;">Research → Analysis → Report pipeline</div>
+              <div class="chain-flow">
+                <div class="chain-node active">
+                  <div class="chain-node-icon">🔬</div>
+                  <div class="chain-node-name">Research</div>
+                  <div class="chain-node-fw">adk</div>
+                </div>
+                <div class="chain-arrow"></div>
+                <div class="chain-node">
+                  <div class="chain-node-icon">📊</div>
+                  <div class="chain-node-name">Analysis</div>
+                  <div class="chain-node-fw">adk</div>
+                </div>
+                <div class="chain-arrow"></div>
+                <div class="chain-node">
+                  <div class="chain-node-icon">📋</div>
+                  <div class="chain-node-name">Report</div>
+                  <div class="chain-node-fw">adk</div>
+                </div>
+              </div>
+              <div style="margin-top: 16px;">
+                <div style="font-size:11px; color:var(--text2); margin-bottom:6px;">Chain throughput (last 1h)</div>
+                <div style="display:flex; gap:3px; align-items:flex-end; height:40px;">
+                  <!-- mini bar chart -->
+                  <script>
+                    document.write(Array.from({length:20}, (_,i) => {
+                      const h = 10 + Math.random()*30;
+                      return `<div style="flex:1;background:rgba(79,142,255,${0.2+Math.random()*0.5});border-radius:2px;height:${h}px;transition:height 0.3s"></div>`;
+                    }).join(''));
+                  </script>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MCP + Deploy row -->
+        <div class="two-col">
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">⬘ MCP Data Sources</div>
+              <span class="panel-tag">Model Context Protocol</span>
+            </div>
+            <div class="panel-body">
+              <div class="mcp-item">
+                <div class="mcp-icon">🗄️</div>
+                <div class="mcp-info">
+                  <div class="mcp-name">Company Database</div>
+                  <div class="mcp-detail">postgresql://db:5432/a2a</div>
+                </div>
+                <div class="mcp-count">4 tools</div>
+              </div>
+              <div class="mcp-item">
+                <div class="mcp-icon">🌐</div>
+                <div class="mcp-info">
+                  <div class="mcp-name">External APIs</div>
+                  <div class="mcp-detail">REST gateway · mcp-data-server:9001</div>
+                </div>
+                <div class="mcp-count">5 tools</div>
+              </div>
+              <div class="mcp-item">
+                <div class="mcp-icon">📁</div>
+                <div class="mcp-info">
+                  <div class="mcp-name">File System</div>
+                  <div class="mcp-detail">filesystem:///data/shared</div>
+                </div>
+                <div class="mcp-count">3 tools</div>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">⬕ IBM Agent Stack</div>
+              <span class="panel-tag">Deployments</span>
+            </div>
+            <div class="panel-body">
+              <div class="deploy-item">
+                <div class="deploy-platform">☁️</div>
+                <div class="deploy-info">
+                  <div class="deploy-name">Research Agent</div>
+                  <div class="deploy-meta">IBM Code Engine · us-south</div>
+                </div>
+                <div class="deploy-replicas">
+                  <div class="deploy-replicas-num">2/2</div>
+                  <div style="font-size:10px;color:var(--green);">running</div>
+                </div>
+              </div>
+              <div class="deploy-item">
+                <div class="deploy-platform">🔴</div>
+                <div class="deploy-info">
+                  <div class="deploy-name">Analysis + Report Agents</div>
+                  <div class="deploy-meta">OpenShift · a2a-platform ns</div>
+                </div>
+                <div class="deploy-replicas">
+                  <div class="deploy-replicas-num">4/4</div>
+                  <div style="font-size:10px;color:var(--green);">running</div>
+                </div>
+              </div>
+              <div class="deploy-item">
+                <div class="deploy-platform">⎈</div>
+                <div class="deploy-info">
+                  <div class="deploy-name">Platform API</div>
+                  <div class="deploy-meta">Kubernetes · HPA enabled</div>
+                </div>
+                <div class="deploy-replicas">
+                  <div class="deploy-replicas-num">2/2</div>
+                  <div style="font-size:10px;color:var(--green);">running</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- System Logs -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">≡ System Activity</div>
+            <span class="panel-tag" id="log-count">8 events</span>
+          </div>
+          <div class="panel-body">
+            <div class="console" id="activity-log">
+              <!-- populated by JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Agent Registry View ── -->
+      <div class="view" id="view-agents">
+        <div class="panel" style="margin-bottom:18px;">
+          <div class="panel-header">
+            <div class="panel-title">⬡ Agent Registry</div>
+            <button class="btn btn-primary" onclick="openRegisterModal()">+ Register Agent</button>
+          </div>
+          <div class="panel-body">
+            <div id="agent-registry-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Chain Builder View ── -->
+      <div class="view" id="view-chains">
+        <div class="two-col">
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">⛓ Chain Builder</div>
+              <span class="panel-tag">Sequential ADK</span>
+            </div>
+            <div class="panel-body">
+              <div class="chain-builder" id="chain-steps">
+                <!-- steps added dynamically -->
+              </div>
+              <div style="margin-top:12px; display:flex; gap:8px;">
+                <button class="btn" onclick="addChainStep()">+ Add Step</button>
+                <button class="btn btn-primary" onclick="saveChain()">Save Chain</button>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">Preview</div>
+            </div>
+            <div class="panel-body">
+              <div class="chain-flow" id="chain-preview">
+                <div style="color:var(--text2);font-size:12px;">Add steps to see preview</div>
+              </div>
+              <div style="margin-top:18px;">
+                <div class="input-label" style="margin-bottom:6px;">Chain Configuration</div>
+                <div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:12px;">
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text2);" id="chain-config-preview">
+                    { "steps": [], "retryOnFailure": true, "timeout": 300000 }
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Execute View ── -->
+      <div class="view" id="view-execute">
+        <div class="two-col">
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">▷ Execute Agent Chain</div>
+            </div>
+            <div class="panel-body">
+              <div class="input-group">
+                <div class="input-label">Chain Type</div>
+                <select class="input-field step-select" id="exec-chain-type">
+                  <option value="research-pipeline">Research → Analysis → Report Pipeline</option>
+                  <option value="single">Single Agent Execution</option>
+                  <option value="custom">Custom Chain</option>
+                </select>
+              </div>
+              <div class="input-group">
+                <div class="input-label">Input Payload (JSON)</div>
+                <textarea class="input-field" id="exec-input" placeholder='{"topic": "AI agent frameworks in 2025", "depth": "deep"}'></textarea>
+              </div>
+              <div class="input-group">
+                <div class="input-label">Context (optional)</div>
+                <textarea class="input-field" id="exec-context" style="min-height:60px" placeholder='{"sessionId": "user_123", "language": "en"}'></textarea>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;margin-top:4px;">
+                <button class="btn btn-primary" onclick="executeChain()" id="exec-btn" style="flex:1;">
+                  ▷ Execute
+                </button>
+                <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;">
+                  <input type="checkbox" id="exec-streaming"> Streaming
+                </label>
+              </div>
+
+              <div class="result-card" id="exec-result">
+                <div class="result-header">Execution Result</div>
+                <div class="result-body" id="exec-result-body"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">Chain Execution Trace</div>
+            </div>
+            <div class="panel-body">
+              <div id="exec-trace" style="display:flex;flex-direction:column;gap:8px;">
+                <div style="color:var(--text2);font-size:12px;text-align:center;padding:20px;">
+                  Execute a chain to see the trace
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── MCP View ── -->
+      <div class="view" id="view-mcp">
+        <div class="panel" style="margin-bottom:18px;">
+          <div class="panel-header">
+            <div class="panel-title">⬘ MCP Data Sources</div>
+            <button class="btn btn-primary" onclick="connectMCP()">+ Connect Server</button>
+          </div>
+          <div class="panel-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;" id="mcp-grid">
+              <!-- MCP cards -->
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Available Tools</div>
+            <span class="panel-tag" id="tools-count">12 tools</span>
+          </div>
+          <div class="panel-body">
+            <div id="mcp-tools-list" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Deploy View ── -->
+      <div class="view" id="view-deploy">
+        <div class="two-col" style="margin-bottom:18px;">
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">☁️ IBM Code Engine</div>
+              <span class="panel-tag" style="background:rgba(34,211,160,0.1);color:var(--green);">connected</span>
+            </div>
+            <div class="panel-body">
+              <div class="input-group">
+                <div class="input-label">Agent to Deploy</div>
+                <select class="input-field step-select" id="deploy-agent-select">
+                  <option>Research Agent</option>
+                  <option>Data Analysis Agent</option>
+                  <option>Report Generator Agent</option>
+                </select>
+              </div>
+              <div class="input-group">
+                <div class="input-label">Container Image</div>
+                <input class="input-field" value="us.icr.io/a2a-platform/research-agent:latest" id="deploy-image">
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div class="input-group">
+                  <div class="input-label">CPU Limit</div>
+                  <input class="input-field" value="500m">
+                </div>
+                <div class="input-group">
+                  <div class="input-label">Memory Limit</div>
+                  <input class="input-field" value="512Mi">
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div class="input-group">
+                  <div class="input-label">Min Replicas</div>
+                  <input class="input-field" type="number" value="1">
+                </div>
+                <div class="input-group">
+                  <div class="input-label">Max Replicas</div>
+                  <input class="input-field" type="number" value="10">
+                </div>
+              </div>
+              <button class="btn btn-primary" style="width:100%;margin-top:4px;" onclick="deployAgent()">
+                Deploy to Code Engine
+              </button>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">🔴 OpenShift</div>
+              <span class="panel-tag" style="background:rgba(34,211,160,0.1);color:var(--green);">connected</span>
+            </div>
+            <div class="panel-body">
+              <div class="input-group">
+                <div class="input-label">Namespace</div>
+                <input class="input-field" value="a2a-platform">
+              </div>
+              <div class="input-group">
+                <div class="input-label">Project</div>
+                <input class="input-field" value="agent-platform-prod">
+              </div>
+              <button class="btn" style="width:100%;margin-top:4px;" onclick="generateManifests()">
+                ⬇ Generate K8s Manifests
+              </button>
+              <div id="manifests-output" style="display:none;margin-top:12px;">
+                <div class="console" style="max-height:150px;" id="manifests-content"></div>
+                <button class="btn" style="width:100%;margin-top:8px;">⬇ Download YAML</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active Deployments -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Active Deployments</div>
+          </div>
+          <div class="panel-body" id="deployments-list">
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Logs View ── -->
+      <div class="view" id="view-logs">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">≡ Platform Logs</div>
+            <button class="btn" onclick="clearLogs()">Clear</button>
+          </div>
+          <div class="panel-body">
+            <div class="console" id="full-log" style="max-height:500px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Metrics View ── -->
+      <div class="view" id="view-metrics">
+        <div class="three-col" style="margin-bottom:18px;">
+          <div class="panel">
+            <div class="panel-header"><div class="panel-title">Agent Health</div></div>
+            <div class="panel-body">
+              <div id="health-bars"></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><div class="panel-title">Chain Success Rate</div></div>
+            <div class="panel-body">
+              <div style="font-size:40px;font-weight:700;color:var(--green);font-family:'IBM Plex Mono',monospace;">100%</div>
+              <div style="font-size:12px;color:var(--text2);margin-top:4px;">0 total chains executed</div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><div class="panel-title">Avg Chain Duration</div></div>
+            <div class="panel-body">
+              <div style="font-size:40px;font-weight:700;color:var(--accent);font-family:'IBM Plex Mono',monospace;">—</div>
+              <div style="font-size:12px;color:var(--text2);margin-top:4px;">No executions yet</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </main>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────────
+
+const state = {
+  agents: [
+    { id: 'research-agent-001', name: 'Research Agent', framework: 'adk', endpoint: 'http://localhost:8081', health: 'healthy', icon: '🔬', tags: ['research','web-search'] },
+    { id: 'data-analysis-agent-001', name: 'Data Analysis Agent', framework: 'adk', endpoint: 'http://localhost:8082', health: 'healthy', icon: '📊', tags: ['analytics','statistics'] },
+    { id: 'report-agent-001', name: 'Report Generator', framework: 'adk', endpoint: 'http://localhost:8083', health: 'healthy', icon: '📋', tags: ['reporting','writing'] },
+    { id: 'langchain-agent-001', name: 'LangChain Analyst', framework: 'langchain', endpoint: 'http://localhost:8084', health: 'unknown', icon: '🔗', tags: ['langchain'] },
+  ],
+  mcpSources: [
+    { name: 'Company Database', url: 'http://mcp-data-server:9001', tools: 4, resources: 2, icon: '🗄️' },
+    { name: 'External APIs', url: 'http://api-gateway:9002', tools: 5, resources: 1, icon: '🌐' },
+    { name: 'File System', url: 'http://fs-server:9003', tools: 3, resources: 1, icon: '📁' },
+  ],
+  chainSteps: [],
+  logs: [],
+  executions: 0,
+};
+
+// ── Logs ───────────────────────────────────────────────────────────────────────
+
+const COLORS = { info: 'log-level-info', success: 'log-level-success', warn: 'log-level-warn', error: 'log-level-error' };
+
+function addLog(level, msg) {
+  const time = new Date().toTimeString().slice(0,8);
+  const entry = { time, level, msg };
+  state.logs.unshift(entry);
+  if (state.logs.length > 100) state.logs.pop();
+  renderLogs();
+}
+
+function renderLogs() {
+  const html = state.logs.slice(0, 20).map(l =>
+    `<div class="log-line"><span class="log-time">${l.time}</span><span class="${COLORS[l.level] || 'log-level-info'}">[${l.level.toUpperCase()}]</span><span class="log-msg">${l.msg}</span></div>`
+  ).join('');
+  document.getElementById('activity-log').innerHTML = html;
+  document.getElementById('full-log').innerHTML = html;
+  document.getElementById('log-count').textContent = `${state.logs.length} events`;
+}
+
+// ── Views ──────────────────────────────────────────────────────────────────────
+
+const TITLES = { dashboard:'Dashboard', agents:'Agent Registry', chains:'Chain Builder', execute:'Execute Chain', mcp:'MCP Data Sources', deploy:'IBM Agent Stack', logs:'Platform Logs', metrics:'Metrics' };
+
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`view-${id}`).classList.add('active');
+  document.querySelector(`[onclick="showView('${id}')"]`).classList.add('active');
+  document.getElementById('view-title').textContent = TITLES[id] || id;
+  if (id === 'agents') renderAgentRegistry();
+  if (id === 'mcp') renderMCP();
+  if (id === 'chains') renderChainBuilder();
+  if (id === 'deploy') renderDeployments();
+  if (id === 'metrics') renderMetrics();
+}
+
+// ── Agent List ─────────────────────────────────────────────────────────────────
+
+function renderAgentList() {
+  const el = document.getElementById('agent-list');
+  if (!el) return;
+  el.innerHTML = state.agents.map(a => `
+    <div class="agent-item">
+      <div class="agent-icon" style="background:var(--surface2);border:1px solid var(--border);">${a.icon}</div>
+      <div class="agent-info">
+        <div class="agent-name">${a.name}</div>
+        <div class="agent-meta">${a.id} · ${a.endpoint}</div>
+      </div>
+      <span class="fw-badge fw-${a.framework}">${a.framework}</span>
+      <span class="agent-status ${a.health}">${a.health}</span>
+    </div>
+  `).join('');
+}
+
+function renderAgentRegistry() {
+  const el = document.getElementById('agent-registry-list');
+  if (!el) return;
+  el.innerHTML = state.agents.map(a => `
+    <div style="display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);">
+      <div style="font-size:22px;width:40px;text-align:center;">${a.icon}</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:600;margin-bottom:3px;">${a.name}</div>
+        <div style="font-size:11px;color:var(--text2);font-family:'IBM Plex Mono',monospace;margin-bottom:5px;">${a.id}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="fw-badge fw-${a.framework}">${a.framework}</span>
+          ${a.tags.map(t => `<span class="panel-tag">${t}</span>`).join('')}
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--text2);margin-bottom:5px;">${a.endpoint}</div>
+        <span class="agent-status ${a.health}">${a.health}</span>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn" style="padding:5px 10px;font-size:11px;" onclick="pingAgent('${a.id}')">Ping</button>
+        <button class="btn" style="padding:5px 10px;font-size:11px;">Info</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function pingAgent(id) {
+  const a = state.agents.find(x => x.id === id);
+  if (!a) return;
+  addLog('info', `Pinging agent ${a.name}...`);
+  setTimeout(() => {
+    a.health = Math.random() > 0.2 ? 'healthy' : 'unhealthy';
+    addLog('success', `Agent ${a.name} responded: ${a.health}`);
+    renderAgentList();
+    renderAgentRegistry();
+  }, 600);
+}
+
+// ── MCP ────────────────────────────────────────────────────────────────────────
+
+const MCP_TOOLS = [
+  { name: 'query_database', server: 'Company DB', desc: 'Query structured tables' },
+  { name: 'call_external_api', server: 'API Gateway', desc: 'HTTP request to external APIs' },
+  { name: 'read_file', server: 'File System', desc: 'Read files from shared storage' },
+  { name: 'write_file', server: 'File System', desc: 'Write data to files' },
+  { name: 'list_resources', server: 'Company DB', desc: 'List available data resources' },
+  { name: 'get_metrics', server: 'Company DB', desc: 'Fetch real-time metrics' },
+  { name: 'search_index', server: 'API Gateway', desc: 'Search through indexed data' },
+  { name: 'send_webhook', server: 'API Gateway', desc: 'Send webhook notifications' },
+];
+
+function renderMCP() {
+  const grid = document.getElementById('mcp-grid');
+  if (grid) grid.innerHTML = state.mcpSources.map(s => `
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;">
+      <div style="font-size:24px;margin-bottom:8px;">${s.icon}</div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:4px;">${s.name}</div>
+      <div style="font-size:11px;color:var(--text2);font-family:'IBM Plex Mono',monospace;margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.url}</div>
+      <div style="display:flex;gap:8px;">
+        <span style="font-size:11px;color:var(--cyan);font-family:'IBM Plex Mono',monospace;">${s.tools} tools</span>
+        <span style="font-size:11px;color:var(--text2);">·</span>
+        <span style="font-size:11px;color:var(--accent);font-family:'IBM Plex Mono',monospace;">${s.resources} resources</span>
+      </div>
+      <div style="margin-top:8px;">
+        <div class="progress-bar"><div class="progress-fill" style="width:${60+Math.random()*40}%;background:var(--green);"></div></div>
+      </div>
+    </div>
+  `).join('');
+
+  const tools = document.getElementById('mcp-tools-list');
+  if (tools) tools.innerHTML = MCP_TOOLS.map(t => `
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px;">
+      <div style="font-size:12px;font-weight:600;font-family:'IBM Plex Mono',monospace;color:var(--accent);margin-bottom:3px;">${t.name}</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:5px;">${t.desc}</div>
+      <span class="panel-tag">${t.server}</span>
+    </div>
+  `).join('');
+}
+
+function connectMCP() {
+  const url = prompt('MCP Server URL:', 'http://localhost:9004');
+  if (!url) return;
+  addLog('info', `Connecting to MCP server: ${url}`);
+  setTimeout(() => {
+    state.mcpSources.push({ name: 'New Server', url, tools: 0, resources: 0, icon: '🔌' });
+    addLog('success', `Connected to MCP server: ${url}`);
+    renderMCP();
+  }, 1000);
+}
+
+// ── Chain Builder ──────────────────────────────────────────────────────────────
+
+function renderChainBuilder() {
+  const el = document.getElementById('chain-steps');
+  if (!el) return;
+  if (state.chainSteps.length === 0) {
+    el.innerHTML = `<div style="color:var(--text2);font-size:12px;text-align:center;padding:20px;">Add steps to build your chain</div>`;
+    document.getElementById('chain-preview').innerHTML = `<div style="color:var(--text2);font-size:12px;">Add steps to see preview</div>`;
+    return;
+  }
+
+  el.innerHTML = state.chainSteps.map((step, i) => `
+    <div class="chain-builder-step">
+      <div class="step-num">${i+1}</div>
+      <select class="step-select" onchange="updateStep(${i}, this.value)">
+        ${state.agents.map(a => `<option value="${a.id}" ${a.id === step ? 'selected' : ''}>${a.name}</option>`).join('')}
+      </select>
+      <button class="step-delete" onclick="removeStep(${i})">×</button>
+    </div>
+  `).join('');
+
+  // Preview
+  const previewEl = document.getElementById('chain-preview');
+  previewEl.innerHTML = state.chainSteps.map((stepId, i) => {
+    const a = state.agents.find(x => x.id === stepId) || { icon: '?', name: stepId, framework: '?' };
+    return `${i > 0 ? '<div class="chain-arrow"></div>' : ''}
+    <div class="chain-node">
+      <div class="chain-node-icon">${a.icon}</div>
+      <div class="chain-node-name">${a.name.split(' ')[0]}</div>
+      <div class="chain-node-fw">${a.framework}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('chain-config-preview').textContent =
+    JSON.stringify({ steps: state.chainSteps.map(id => ({ agentId: id })), retryOnFailure: true, timeout: 300000 }, null, 2);
+}
+
+function addChainStep() {
+  state.chainSteps.push(state.agents[0]?.id || '');
+  renderChainBuilder();
+}
+
+function removeStep(i) { state.chainSteps.splice(i, 1); renderChainBuilder(); }
+function updateStep(i, val) { state.chainSteps[i] = val; renderChainBuilder(); }
+
+function saveChain() {
+  if (state.chainSteps.length < 2) { alert('Add at least 2 steps'); return; }
+  addLog('success', `Chain saved with ${state.chainSteps.length} steps`);
+}
+
+// ── Execute ────────────────────────────────────────────────────────────────────
+
+async function executeChain() {
+  const input = document.getElementById('exec-input').value;
+  const btn = document.getElementById('exec-btn');
+  const traceEl = document.getElementById('exec-trace');
+  const resultCard = document.getElementById('exec-result');
+  const resultBody = document.getElementById('exec-result-body');
+
+  if (!input) { alert('Please enter input payload'); return; }
+
+  btn.disabled = true;
+  btn.textContent = '⟳ Executing...';
+  state.executions++;
+
+  const steps = [
+    { id: 'research-agent-001', name: 'Research Agent', icon: '🔬' },
+    { id: 'data-analysis-agent-001', name: 'Analysis Agent', icon: '📊' },
+    { id: 'report-agent-001', name: 'Report Agent', icon: '📋' },
+  ];
+
+  addLog('info', `Chain execution started (${state.executions} total)`);
+
+  traceEl.innerHTML = steps.map((s, i) => `
+    <div id="trace-${i}" style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;">
+      <div style="font-size:18px;">${s.icon}</div>
+      <div style="flex:1;">
+        <div style="font-size:12px;font-weight:500;">${s.name}</div>
+        <div class="progress-bar" style="margin-top:5px;"><div class="progress-fill" id="trace-prog-${i}" style="width:0%;background:var(--accent);"></div></div>
+      </div>
+      <div id="trace-status-${i}" style="font-size:11px;color:var(--text2);font-family:'IBM Plex Mono',monospace;">waiting</div>
+    </div>
+  `).join('');
+
+  for (let i = 0; i < steps.length; i++) {
+    document.getElementById(`trace-status-${i}`).textContent = 'running';
+    document.getElementById(`trace-status-${i}`).style.color = 'var(--yellow)';
+    addLog('info', `Step ${i+1}/${steps.length}: ${steps[i].name}`);
+
+    // Animate progress
+    let p = 0;
+    const interval = setInterval(() => {
+      p = Math.min(p + Math.random() * 15, 95);
+      const el = document.getElementById(`trace-prog-${i}`);
+      if (el) el.style.width = p + '%';
+    }, 200);
+
+    await new Promise(r => setTimeout(r, 1500 + Math.random() * 1000));
+    clearInterval(interval);
+
+    const el = document.getElementById(`trace-prog-${i}`);
+    if (el) el.style.width = '100%';
+    if (el) el.style.background = 'var(--green)';
+    document.getElementById(`trace-status-${i}`).textContent = 'done ✓';
+    document.getElementById(`trace-status-${i}`).style.color = 'var(--green)';
+    addLog('success', `${steps[i].name} completed`);
+  }
+
+  const mockResult = {
+    chainId: `chain_${Date.now()}`,
+    status: 'completed',
+    totalDuration: Math.floor(3000 + Math.random() * 2000),
+    finalOutput: {
+      title: 'Research Analysis Report',
+      summary: `Comprehensive analysis of: ${input.slice(0, 50)}...`,
+      recommendations: ['Recommendation 1', 'Recommendation 2', 'Recommendation 3'],
+      confidence: 0.92,
+    }
+  };
+
+  resultCard.classList.add('visible');
+  resultBody.textContent = JSON.stringify(mockResult, null, 2);
+  btn.disabled = false;
+  btn.textContent = '▷ Execute';
+  addLog('success', `Chain completed in ${mockResult.totalDuration}ms`);
+}
+
+// ── Deploy ─────────────────────────────────────────────────────────────────────
+
+const deployments = [
+  { id: 'ce-001', name: 'Research Agent', platform: '☁️', platformName: 'IBM Code Engine', status: 'running', replicas: '2/2', region: 'us-south' },
+  { id: 'os-001', name: 'Analysis + Report Agents', platform: '🔴', platformName: 'OpenShift', status: 'running', replicas: '4/4', region: 'us-east-1' },
+  { id: 'k8s-001', name: 'Platform API', platform: '⎈', platformName: 'Kubernetes', status: 'running', replicas: '2/2', region: 'eu-west-1' },
+];
+
+function renderDeployments() {
+  const el = document.getElementById('deployments-list');
+  if (!el) return;
+  el.innerHTML = deployments.map(d => `
+    <div style="display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);">
+      <div style="font-size:22px;">${d.platform}</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:600;margin-bottom:2px;">${d.name}</div>
+        <div style="font-size:11px;color:var(--text2);font-family:'IBM Plex Mono',monospace;">${d.platformName} · ${d.region}</div>
+      </div>
+      <div style="text-align:right;margin-right:12px;">
+        <div style="font-size:16px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--accent);">${d.replicas}</div>
+        <div style="font-size:10px;color:var(--text2);">replicas</div>
+      </div>
+      <span class="agent-status healthy">${d.status}</span>
+      <div style="display:flex;gap:6px;">
+        <button class="btn" style="padding:5px 10px;font-size:11px;">Logs</button>
+        <button class="btn" style="padding:5px 10px;font-size:11px;">Scale</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function deployAgent() {
+  const name = document.getElementById('deploy-agent-select').value;
+  const image = document.getElementById('deploy-image').value;
+  addLog('info', `Deploying ${name} to IBM Code Engine...`);
+  addLog('info', `Image: ${image}`);
+  setTimeout(() => {
+    deployments.push({ id: `ce-${Date.now()}`, name, platform: '☁️', platformName: 'IBM Code Engine', status: 'running', replicas: '1/1', region: 'us-south' });
+    addLog('success', `${name} deployed successfully!`);
+    renderDeployments();
+  }, 2000);
+}
+
+function generateManifests() {
+  const output = document.getElementById('manifests-output');
+  const content = document.getElementById('manifests-content');
+  output.style.display = 'block';
+  content.textContent = `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: research-agent
+  namespace: a2a-platform
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: research-agent
+  template:
+    spec:
+      containers:
+        - name: research-agent
+          image: us.icr.io/a2a-platform/research-agent:latest
+          ports:
+            - containerPort: 8081
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: research-agent-service
+spec:
+  selector:
+    app: research-agent
+  ports:
+    - port: 80
+      targetPort: 8081`;
+  addLog('success', 'Kubernetes manifests generated');
+}
+
+// ── Metrics ────────────────────────────────────────────────────────────────────
+
+function renderMetrics() {
+  const el = document.getElementById('health-bars');
+  if (!el) return;
+  el.innerHTML = state.agents.map(a => `
+    <div style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;">
+        <span>${a.icon} ${a.name}</span>
+        <span style="color:${a.health==='healthy'?'var(--green)':'var(--text2)'};">${a.health}</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:${a.health==='healthy'?'100':'0'}%;background:var(--green);"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── Misc ───────────────────────────────────────────────────────────────────────
+
+function refreshAll() {
+  addLog('info', 'Refreshing platform data...');
+  state.agents.forEach(a => {
+    a.health = Math.random() > 0.15 ? 'healthy' : 'unhealthy';
+  });
+  renderAgentList();
+  addLog('success', 'Platform data refreshed');
+}
+
+function clearLogs() { state.logs = []; renderLogs(); }
+function openRegisterModal() { alert('In production: opens agent registration modal (enter endpoint URL to auto-discover agent card)'); }
+
+// ── Init ───────────────────────────────────────────────────────────────────────
+
+// Initial logs
+[
+  ['success', 'Platform API started on port 3000'],
+  ['success', 'Research Agent registered (adk · port 8081)'],
+  ['success', 'Data Analysis Agent registered (adk · port 8082)'],
+  ['success', 'Report Agent registered (adk · port 8083)'],
+  ['info', 'MCP connection established: Company Database (4 tools)'],
+  ['info', 'MCP connection established: External APIs (5 tools)'],
+  ['info', 'MCP connection established: File System (3 tools)'],
+  ['info', 'IBM Agent Stack initialized · Code Engine region: us-south'],
+].reverse().forEach(([lvl, msg]) => addLog(lvl, msg));
+
+renderAgentList();
+renderChainBuilder();
+
+// Auto-refresh health every 30s
+setInterval(refreshAll, 30000);
+</script>
+</body>
+</html>

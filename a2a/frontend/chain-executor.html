@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A2A Chain Executor — Live Test (Fixed)</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #08090f;
+    --s1: #0f1018;
+    --s2: #15161f;
+    --s3: #1c1d28;
+    --border: #252535;
+    --b2: #30314a;
+    --text: #dde0f0;
+    --t2: #7880a0;
+    --t3: #454860;
+    --accent: #5b8dee;
+    --a2: #8c6cf0;
+    --green: #1fd89a;
+    --yellow: #f0c040;
+    --red: #f05070;
+    --cyan: #20d4e4;
+    --glow: rgba(91,141,238,0.12);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(91,141,238,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(91,141,238,0.025) 1px, transparent 1px);
+    background-size: 32px 32px;
+    pointer-events: none;
+  }
+
+  .header {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 24px;
+  }
+  .header-icon {
+    width: 42px; height: 42px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--a2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+  }
+  .header-title { font-size: 20px; font-weight: 700; }
+  .header-sub { font-size: 12px; color: var(--t2); font-family: 'IBM Plex Mono', monospace; }
+
+  .grid { display: grid; grid-template-columns: 360px 1fr; gap: 18px; }
+
+  .card {
+    background: var(--s1); border: 1px solid var(--border);
+    border-radius: 12px; overflow: hidden;
+  }
+  .card-header {
+    padding: 14px 18px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .card-title { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .card-body { padding: 18px; }
+
+  .badge {
+    font-size: 10px; font-family: 'IBM Plex Mono', monospace;
+    padding: 2px 8px; border-radius: 4px;
+    background: var(--s2); color: var(--t2); border: 1px solid var(--border);
+  }
+
+  label { font-size: 11px; color: var(--t2); display: block; margin-bottom: 5px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
+  input, select, textarea {
+    width: 100%; background: var(--s2); border: 1px solid var(--b2);
+    color: var(--text); padding: 9px 12px; border-radius: 7px;
+    font-family: 'IBM Plex Sans', sans-serif; font-size: 12px;
+    transition: border-color 0.15s; margin-bottom: 14px;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+  textarea { min-height: 80px; resize: vertical; font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+  select { cursor: pointer; }
+
+  .btn {
+    padding: 9px 18px; border-radius: 7px; font-size: 12px;
+    font-weight: 600; cursor: pointer; transition: all 0.15s;
+    border: 1px solid var(--b2); background: var(--s2);
+    color: var(--text); font-family: 'IBM Plex Sans', sans-serif;
+    display: inline-flex; align-items: center; gap: 7px;
+  }
+  .btn:hover { background: var(--s3); border-color: var(--t3); }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #4a7de0; border-color: #4a7de0; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-sm { padding: 5px 12px; font-size: 11px; }
+
+  /* Chain Nodes */
+  .chain-visual {
+    display: flex; align-items: center; gap: 0;
+    padding: 16px; background: var(--s2); border-radius: 8px;
+    margin-bottom: 16px; overflow-x: auto;
+    border: 1px solid var(--border);
+  }
+  .node {
+    flex-shrink: 0; display: flex; flex-direction: column; align-items: center;
+    gap: 6px; width: 88px;
+  }
+  .node-circle {
+    width: 52px; height: 52px; border-radius: 50%;
+    border: 2px solid var(--border); background: var(--s1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; transition: all 0.3s; position: relative;
+  }
+  .node-circle.pending { border-color: var(--border); }
+  .node-circle.running {
+    border-color: var(--yellow);
+    box-shadow: 0 0 0 4px rgba(240,192,64,0.15);
+    animation: spin-glow 1.5s infinite;
+  }
+  .node-circle.done {
+    border-color: var(--green);
+    box-shadow: 0 0 0 4px rgba(31,216,154,0.15);
+  }
+  .node-circle.error { border-color: var(--red); box-shadow: 0 0 0 4px rgba(240,80,112,0.15); }
+  @keyframes spin-glow { 0%,100% { box-shadow: 0 0 0 4px rgba(240,192,64,0.15); } 50% { box-shadow: 0 0 0 8px rgba(240,192,64,0.25); } }
+  .node-label { font-size: 10px; font-weight: 600; text-align: center; color: var(--t2); }
+  .node-status { font-size: 9px; font-family: 'IBM Plex Mono', monospace; color: var(--t3); }
+  .node-status.running { color: var(--yellow); }
+  .node-status.done { color: var(--green); }
+  .node-status.error { color: var(--red); }
+
+  .arrow {
+    flex: 1; min-width: 24px; height: 2px;
+    background: var(--border); position: relative;
+    transition: background 0.5s;
+  }
+  .arrow.lit { background: linear-gradient(90deg, var(--green), var(--accent)); }
+  .arrow::after {
+    content: ''; position: absolute;
+    right: -1px; top: -4px;
+    border: 5px solid transparent;
+    border-left-color: var(--border); transition: border-left-color 0.5s;
+  }
+  .arrow.lit::after { border-left-color: var(--accent); }
+
+  /* Step Output Cards */
+  .step-outputs { display: flex; flex-direction: column; gap: 14px; }
+  .step-card {
+    background: var(--s1); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden;
+    transition: border-color 0.3s;
+  }
+  .step-card.running { border-color: var(--yellow); }
+  .step-card.done { border-color: var(--green); }
+  .step-card.error { border-color: var(--red); }
+  .step-card-header {
+    padding: 11px 16px;
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .step-icon { font-size: 18px; }
+  .step-name { font-size: 12px; font-weight: 600; flex: 1; }
+  .step-time { font-size: 10px; color: var(--t2); font-family: 'IBM Plex Mono', monospace; }
+  .step-pill {
+    font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600;
+  }
+  .step-pill.pending { background: var(--s2); color: var(--t2); }
+  .step-pill.running { background: rgba(240,192,64,0.15); color: var(--yellow); }
+  .step-pill.done { background: rgba(31,216,154,0.12); color: var(--green); }
+  .step-pill.error { background: rgba(240,80,112,0.12); color: var(--red); }
+  .step-body { padding: 14px 16px; }
+
+  /* Streaming output */
+  .stream-out {
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+    line-height: 1.8; color: var(--t2);
+    min-height: 40px;
+  }
+  .stream-out .tok { opacity: 0; animation: fadeIn 0.08s forwards; }
+  @keyframes fadeIn { to { opacity: 1; } }
+  .cursor { display: inline-block; width: 7px; height: 13px; background: var(--accent); margin-left: 2px; animation: blink 0.7s infinite; vertical-align: text-bottom; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  .tool-call {
+    display: flex; align-items: flex-start; gap: 8px;
+    margin: 6px 0; padding: 8px 10px; border-radius: 6px;
+    background: rgba(91,141,238,0.07); border: 1px solid rgba(91,141,238,0.15);
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+  }
+  .tool-call-icon { color: var(--accent); flex-shrink: 0; margin-top: 1px; }
+  .tool-call-name { color: var(--accent); font-weight: 600; }
+  .tool-call-args { color: var(--t2); }
+
+  .final-output {
+    background: var(--s2); border: 1px solid rgba(31,216,154,0.2);
+    border-radius: 8px; padding: 14px; margin-top: 14px;
+  }
+  .final-label { font-size: 10px; color: var(--green); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+  .final-content { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text); line-height: 1.7; white-space: pre-wrap; }
+
+  .progress-track { height: 2px; background: var(--border); border-radius: 1px; overflow: hidden; margin-top: 8px; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--green)); border-radius: 1px; transition: width 0.4s; }
+
+  .summary-bar {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+    padding: 14px; background: var(--s2); border-radius: 8px; margin-bottom: 16px;
+    border: 1px solid var(--border);
+  }
+  .summary-item { text-align: center; }
+  .summary-val { font-size: 20px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; }
+  .summary-lbl { font-size: 10px; color: var(--t2); margin-top: 2px; }
+
+  .log-panel {
+    background: #060608; border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px; font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; line-height: 1.8; max-height: 160px; overflow-y: auto;
+    margin-top: 14px;
+  }
+  .log-line { display: flex; gap: 10px; }
+  .log-t { color: #444; flex-shrink: 0; }
+  .log-i { color: var(--cyan); }
+  .log-s { color: var(--green); }
+  .log-w { color: var(--yellow); }
+  .log-e { color: var(--red); }
+  .log-m { color: #666; }
+
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-thumb { background: var(--b2); border-radius: 2px; }
+
+  .warning-box {
+    background: rgba(240,192,64,0.08); border: 1px solid rgba(240,192,64,0.25);
+    border-radius: 7px; padding: 10px 14px; font-size: 11px; color: var(--yellow);
+    margin-bottom: 14px; line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">⛓</div>
+  <div>
+    <div class="header-title">A2A Chain Executor — Live Test</div>
+    <div class="header-sub">Sequential agent chain · ADK protocol · Real Claude API calls</div>
+  </div>
+</div>
+
+<div class="grid">
+  <!-- LEFT: Config -->
+  <div>
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-header">
+        <div class="card-title">⚙ Chain Configuration</div>
+        <span class="badge">3 agents</span>
+      </div>
+      <div class="card-body">
+        <div class="warning-box">
+          ⚡ This runs real Claude API calls through a 3-agent sequential chain — each agent's output feeds the next.
+        </div>
+
+        <label>Chain Preset</label>
+        <select id="preset" onchange="applyPreset()">
+          <option value="research">Research → Analyze → Report</option>
+          <option value="code">Design → Code → Review</option>
+          <option value="data">Extract → Transform → Summarize</option>
+        </select>
+
+        <label>Initial Input</label>
+        <textarea id="chain-input" rows="4">The rise of multi-agent AI systems in 2025 and how A2A protocol enables interoperability</textarea>
+
+        <label>Agent 1 — Researcher</label>
+        <input id="a1-prompt" value="You are a research analyst. Given a topic, produce a structured research brief with: key findings (3-5 bullet points), current landscape, and key questions to investigate. Be concise and factual. Output as JSON: {findings, landscape, questions}">
+
+        <label>Agent 2 — Analyst</label>
+        <input id="a2-prompt" value="You are a data analyst. Given research findings, produce: trend analysis, risk/opportunity matrix, and quantitative estimates where possible. Output as JSON: {trends, opportunities, risks, estimates}">
+
+        <label>Agent 3 — Reporter</label>
+        <input id="a3-prompt" value="You are an executive report writer. Given research and analysis, write a concise executive brief with: executive summary (2-3 sentences), key insights (3 bullets), recommendations (3 bullets), conclusion. Output as JSON: {executiveSummary, keyInsights, recommendations, conclusion}">
+
+        <button class="btn btn-primary" id="run-btn" onclick="runChain()" style="width:100%;">
+          ▷ Execute Chain
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📊 Execution Stats</div>
+      </div>
+      <div class="card-body">
+        <div class="summary-bar">
+          <div class="summary-item">
+            <div class="summary-val" id="stat-steps" style="color:var(--accent)">—</div>
+            <div class="summary-lbl">Steps</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-val" id="stat-tokens" style="color:var(--a2)">—</div>
+            <div class="summary-lbl">Tokens</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-val" id="stat-time" style="color:var(--cyan)">—</div>
+            <div class="summary-lbl">Duration</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-val" id="stat-status" style="color:var(--t2)">—</div>
+            <div class="summary-lbl">Status</div>
+          </div>
+        </div>
+        <div class="log-panel" id="log-panel">
+          <div class="log-line"><span class="log-t">--:--:--</span><span class="log-i">[INFO]</span><span class="log-m"> A2A Chain Executor ready. Press Execute to start.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Live Execution -->
+  <div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">⬡ Live Chain Execution</div>
+        <span class="badge" id="chain-status-badge">idle</span>
+      </div>
+      <div class="card-body">
+        <!-- Chain visual -->
+        <div class="chain-visual">
+          <div class="node">
+            <div class="node-circle pending" id="node-0">🔬</div>
+            <div class="node-label">Researcher</div>
+            <div class="node-status pending" id="node-status-0">pending</div>
+          </div>
+          <div class="arrow" id="arrow-0"></div>
+          <div class="node">
+            <div class="node-circle pending" id="node-1">📊</div>
+            <div class="node-label">Analyst</div>
+            <div class="node-status pending" id="node-status-1">pending</div>
+          </div>
+          <div class="arrow" id="arrow-1"></div>
+          <div class="node">
+            <div class="node-circle pending" id="node-2">📋</div>
+            <div class="node-label">Reporter</div>
+            <div class="node-status pending" id="node-status-2">pending</div>
+          </div>
+        </div>
+
+        <!-- Step outputs -->
+        <div class="step-outputs" id="step-outputs">
+          <div style="text-align:center;padding:30px;color:var(--t2);font-size:12px;">
+            Press <strong style="color:var(--accent)">Execute Chain</strong> to run the 3-agent pipeline
+          </div>
+        </div>
+
+        <!-- Final output -->
+        <div id="final-section" style="display:none; margin-top:16px;">
+          <div class="final-output">
+            <div class="final-label">✓ Chain Complete — Final Output</div>
+            <div class="final-content" id="final-content"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const AGENTS = [
+  { id: 'research-agent', name: 'Researcher', icon: '🔬', color: 'var(--accent)' },
+  { id: 'analysis-agent', name: 'Analyst',    icon: '📊', color: 'var(--a2)' },
+  { id: 'report-agent',   name: 'Reporter',   icon: '📋', color: 'var(--green)' },
+];
+
+let chainStart = 0;
+let totalTokens = 0;
+let running = false;
+const logs = [];
+
+// ── Logging ──────────────────────────────────────────────────────────────────
+function log(level, msg) {
+  const t = new Date().toTimeString().slice(0,8);
+  logs.unshift({ t, level, msg });
+  const panel = document.getElementById('log-panel');
+  panel.innerHTML = logs.slice(0,50).map(l =>
+    `<div class="log-line"><span class="log-t">${l.t}</span><span class="log-${l.level}">[${l.level.toUpperCase()}]</span><span class="log-m"> ${l.msg}</span></div>`
+  ).join('');
+}
+
+// ── Preset ───────────────────────────────────────────────────────────────────
+function applyPreset() {
+  const p = document.getElementById('preset').value;
+  const presets = {
+    research: {
+      input: 'The rise of multi-agent AI systems in 2025 and how A2A protocol enables interoperability',
+      a1: 'You are a research analyst. Given a topic, produce a structured research brief with: key findings (3-5 bullet points), current landscape, and key questions to investigate. Be concise and factual. Output as JSON: {findings, landscape, questions}',
+      a2: 'You are a data analyst. Given research findings, produce: trend analysis, risk/opportunity matrix, and quantitative estimates where possible. Output as JSON: {trends, opportunities, risks, estimates}',
+      a3: 'You are an executive report writer. Given research and analysis, write a concise executive brief. Output as JSON: {executiveSummary, keyInsights, recommendations, conclusion}',
+    },
+    code: {
+      input: 'A REST API endpoint that accepts a user query, calls an LLM, and returns a streaming response',
+      a1: 'You are a software architect. Given a feature description, produce a technical design: components needed, API contract, data flow, and potential issues. Output as JSON: {components, apiContract, dataFlow, risks}',
+      a2: 'You are a senior developer. Given a technical design, write clean TypeScript/Node.js implementation code. Focus on the core logic. Output as JSON: {code, dependencies, explanation}',
+      a3: 'You are a code reviewer. Given code, identify: bugs, security issues, performance improvements, and overall quality score. Output as JSON: {bugs, security, performance, score, verdict}',
+    },
+    data: {
+      input: 'Monthly SaaS metrics: MRR=$125k, churn=3.2%, CAC=$280, LTV=$2400, NPS=42, active_users=3840',
+      a1: 'You are a data extraction specialist. Parse the raw metrics data and structure it properly. Output as JSON: {metrics: {name, value, unit}[], period, source}',
+      a2: 'You are a business analyst. Given structured metrics, compute derived KPIs, identify anomalies, and benchmark against SaaS industry standards. Output as JSON: {kpis, anomalies, benchmarks, healthScore}',
+      a3: 'You are a CFO. Given business metrics and analysis, write an investor-ready summary with key highlights and action items. Output as JSON: {headline, highlights, concerns, actions, outlook}',
+    }
+  };
+  const cfg = presets[p];
+  document.getElementById('chain-input').value = cfg.input;
+  document.getElementById('a1-prompt').value = cfg.a1;
+  document.getElementById('a2-prompt').value = cfg.a2;
+  document.getElementById('a3-prompt').value = cfg.a3;
+}
+
+// ── Node state helpers ────────────────────────────────────────────────────────
+function setNodeState(i, state, timeStr) {
+  const node = document.getElementById(`node-${i}`);
+  const status = document.getElementById(`node-status-${i}`);
+  node.className = `node-circle ${state}`;
+  status.className = `node-status ${state}`;
+  status.textContent = state === 'done' ? `✓ ${timeStr}` : state;
+}
+
+function lightArrow(i) {
+  document.getElementById(`arrow-${i}`)?.classList.add('lit');
+}
+
+// ── Step card rendering ───────────────────────────────────────────────────────
+function createStepCard(agent) {
+  const el = document.createElement('div');
+  el.className = 'step-card pending';
+  el.id = `step-card-${agent.id}`;
+  el.innerHTML = `
+    <div class="step-card-header">
+      <span class="step-icon">${agent.icon}</span>
+      <span class="step-name">${agent.name} Agent</span>
+      <span class="step-time" id="stime-${agent.id}"></span>
+      <span class="step-pill pending" id="spill-${agent.id}">pending</span>
+    </div>
+    <div class="step-body">
+      <div class="stream-out" id="sout-${agent.id}">
+        <span style="color:var(--t3)">Waiting to start…</span>
+      </div>
+      <div class="progress-track" id="sprog-track-${agent.id}" style="display:none">
+        <div class="progress-fill" id="sprog-${agent.id}" style="width:0%"></div>
+      </div>
+    </div>`;
+  return el;
+}
+
+function setCardState(agentId, state) {
+  const card = document.getElementById(`step-card-${agentId}`);
+  const pill = document.getElementById(`spill-${agentId}`);
+  if (card) card.className = `step-card ${state}`;
+  if (pill) { pill.className = `step-pill ${state}`; pill.textContent = state; }
+}
+
+// ── Token streaming simulation ────────────────────────────────────────────────
+async function streamText(elId, text, delayBase = 18) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.innerHTML = '';
+  const words = text.split(' ');
+  for (let i = 0; i < words.length; i++) {
+    const span = document.createElement('span');
+    span.className = 'tok';
+    span.style.animationDelay = `${i * 0.02}s`;
+    span.textContent = words[i] + (i < words.length - 1 ? ' ' : '');
+    el.appendChild(span);
+    await new Promise(r => setTimeout(r, delayBase + Math.random() * 20));
+    el.scrollTop = el.scrollHeight;
+  }
+}
+
+// ── Call Claude API ───────────────────────────────────────────────────────────
+async function callAgent(systemPrompt, userContent, agentName) {
+  log('i', `Calling ${agentName} agent via Claude API...`);
+
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: systemPrompt + '\n\nIMPORTANT: Respond ONLY with valid JSON. No markdown, no explanation outside the JSON.',
+      messages: [{ role: 'user', content: String(userContent) }],
+    }),
+  });
+
+  if (!resp.ok) {
+    const err = await resp.text();
+    throw new Error(`API error ${resp.status}: ${err}`);
+  }
+
+  const data = await resp.json();
+  const rawText = data.content.map(b => b.text || '').join('');
+  const usage = data.usage || {};
+  totalTokens += (usage.input_tokens || 0) + (usage.output_tokens || 0);
+  document.getElementById('stat-tokens').textContent = totalTokens.toLocaleString();
+
+  // Parse JSON from response
+  let parsed;
+  try {
+    // Strip markdown code fences if present
+    const clean = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    parsed = JSON.parse(clean);
+  } catch {
+    // Try to extract JSON object from text
+    const match = rawText.match(/\{[\s\S]*\}/);
+    if (match) {
+      try { parsed = JSON.parse(match[0]); }
+      catch { parsed = { text: rawText }; }
+    } else {
+      parsed = { text: rawText };
+    }
+  }
+
+  return { parsed, raw: rawText, tokens: usage };
+}
+
+// ── Main Chain Executor ───────────────────────────────────────────────────────
+async function runChain() {
+  if (running) return;
+  running = true;
+
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span style="animation:spin 1s linear infinite;display:inline-block">⟳</span> Running…';
+
+  // Reset state
+  totalTokens = 0;
+  chainStart = Date.now();
+  document.getElementById('final-section').style.display = 'none';
+  document.getElementById('chain-status-badge').textContent = 'running';
+
+  // Reset nodes
+  for (let i = 0; i < 3; i++) {
+    setNodeState(i, 'pending', '');
+    document.getElementById(`arrow-${i}`)?.classList.remove('lit');
+  }
+
+  document.getElementById('stat-steps').textContent = '0/3';
+  document.getElementById('stat-tokens').textContent = '0';
+  document.getElementById('stat-time').textContent = '0s';
+  document.getElementById('stat-status').textContent = 'running';
+  document.getElementById('stat-status').style.color = 'var(--yellow)';
+
+  // Build step output cards
+  const container = document.getElementById('step-outputs');
+  container.innerHTML = '';
+  AGENTS.forEach(a => container.appendChild(createStepCard(a)));
+
+  const input = document.getElementById('chain-input').value;
+  const prompts = [
+    document.getElementById('a1-prompt').value,
+    document.getElementById('a2-prompt').value,
+    document.getElementById('a3-prompt').value,
+  ];
+
+  log('i', `Chain started — input: "${input.slice(0,60)}..."`);
+
+  let currentInput = `Topic/Input: ${input}`;
+  let outputs = [];
+
+  // Timer updater
+  const timer = setInterval(() => {
+    document.getElementById('stat-time').textContent = ((Date.now()-chainStart)/1000).toFixed(1)+'s';
+  }, 200);
+
+  try {
+    for (let i = 0; i < AGENTS.length; i++) {
+      const agent = AGENTS[i];
+      const stepStart = Date.now();
+
+      // Activate node
+      setNodeState(i, 'running', '');
+      setCardState(agent.id, 'running');
+
+      const outEl = document.getElementById(`sout-${agent.id}`);
+      const progTrack = document.getElementById(`sprog-track-${agent.id}`);
+      const prog = document.getElementById(`sprog-${agent.id}`);
+
+      if (outEl) outEl.innerHTML = '<span class="cursor"></span>';
+      if (progTrack) progTrack.style.display = 'block';
+
+      // Show tool call simulation for first agent
+      if (i === 0) {
+        if (outEl) outEl.innerHTML = `
+          <div class="tool-call">
+            <span class="tool-call-icon">⚙</span>
+            <div><span class="tool-call-name">web_search</span> <span class="tool-call-args">{"query": "${input.slice(0,40)}..."}</span></div>
+          </div><span class="cursor"></span>`;
+        await new Promise(r => setTimeout(r, 800));
+      }
+
+      // Animate progress to 70%
+      let p = 0;
+      const progInterval = setInterval(() => {
+        p = Math.min(p + 2 + Math.random() * 3, 70);
+        if (prog) prog.style.width = p + '%';
+      }, 150);
+
+      log('i', `[${i+1}/3] ${agent.name} processing...`);
+
+      // Build input for this step
+      let stepInput = currentInput;
+      if (i > 0) {
+        stepInput = `Previous agent output:\n${JSON.stringify(outputs[i-1], null, 2)}\n\nOriginal input: ${input}`;
+      }
+
+      // Call real API
+      const result = await callAgent(prompts[i], stepInput, agent.name);
+
+      clearInterval(progInterval);
+      if (prog) prog.style.width = '100%';
+
+      const stepDuration = ((Date.now() - stepStart) / 1000).toFixed(1);
+      outputs.push(result.parsed);
+      currentInput = JSON.stringify(result.parsed);
+
+      // Stream the output
+      const displayText = JSON.stringify(result.parsed, null, 2);
+      if (outEl) {
+        outEl.innerHTML = '';
+        await streamText(`sout-${agent.id}`, displayText, 8);
+      }
+
+      // Mark complete
+      setNodeState(i, 'done', `${stepDuration}s`);
+      setCardState(agent.id, 'done');
+      document.getElementById(`stime-${agent.id}`).textContent = `${stepDuration}s`;
+      if (i < 2) lightArrow(i);
+
+      document.getElementById('stat-steps').textContent = `${i+1}/3`;
+      log('s', `[${i+1}/3] ${agent.name} done in ${stepDuration}s · ${result.tokens.output_tokens||'?'} tokens`);
+
+      await new Promise(r => setTimeout(r, 300));
+    }
+
+    // Chain complete!
+    lightArrow(1);
+    const totalTime = ((Date.now() - chainStart)/1000).toFixed(1);
+    clearInterval(timer);
+    document.getElementById('stat-time').textContent = `${totalTime}s`;
+    document.getElementById('stat-status').textContent = '✓ done';
+    document.getElementById('stat-status').style.color = 'var(--green)';
+    document.getElementById('chain-status-badge').textContent = 'completed';
+
+    // Final output
+    const finalSection = document.getElementById('final-section');
+    const finalContent = document.getElementById('final-content');
+    finalSection.style.display = 'block';
+
+    const finalReport = outputs[2]; // Reporter's output
+    let displayFinal = '';
+
+    if (finalReport.executiveSummary) displayFinal += `EXECUTIVE SUMMARY\n${finalReport.executiveSummary}\n\n`;
+    if (finalReport.headline) displayFinal += `HEADLINE\n${finalReport.headline}\n\n`;
+    if (finalReport.keyInsights) displayFinal += `KEY INSIGHTS\n${(Array.isArray(finalReport.keyInsights) ? finalReport.keyInsights : [finalReport.keyInsights]).map((x,i) => `${i+1}. ${x}`).join('\n')}\n\n`;
+    if (finalReport.highlights) displayFinal += `HIGHLIGHTS\n${(Array.isArray(finalReport.highlights) ? finalReport.highlights : [finalReport.highlights]).map((x,i) => `${i+1}. ${x}`).join('\n')}\n\n`;
+    if (finalReport.recommendations) displayFinal += `RECOMMENDATIONS\n${(Array.isArray(finalReport.recommendations) ? finalReport.recommendations : [finalReport.recommendations]).map((x,i) => `${i+1}. ${x}`).join('\n')}\n\n`;
+    if (finalReport.actions) displayFinal += `ACTION ITEMS\n${(Array.isArray(finalReport.actions) ? finalReport.actions : [finalReport.actions]).map((x,i) => `${i+1}. ${x}`).join('\n')}\n\n`;
+    if (finalReport.conclusion) displayFinal += `CONCLUSION\n${finalReport.conclusion}`;
+    if (finalReport.verdict) displayFinal += `\n\nVERDICT\n${finalReport.verdict}`;
+    if (finalReport.outlook) displayFinal += `\n\nOUTLOOK\n${finalReport.outlook}`;
+
+    if (!displayFinal) displayFinal = JSON.stringify(finalReport, null, 2);
+
+    await streamText('final-content', displayFinal.trim(), 10);
+
+    log('s', `Chain complete! ${totalTime}s · ${totalTokens} tokens · 3 agents`);
+
+  } catch (err) {
+    clearInterval(timer);
+    const errMsg = err.message || String(err);
+    log('e', `Chain failed: ${errMsg}`);
+    document.getElementById('stat-status').textContent = 'failed';
+    document.getElementById('stat-status').style.color = 'var(--red)';
+    document.getElementById('chain-status-badge').textContent = 'failed';
+
+    // Show error in current step
+    const activeCards = document.querySelectorAll('.step-card.running');
+    activeCards.forEach(c => c.classList.replace('running', 'error'));
+
+    // If it's an auth error, show helpful message
+    if (errMsg.includes('401') || errMsg.includes('403')) {
+      const container = document.getElementById('step-outputs');
+      const note = document.createElement('div');
+      note.style.cssText = 'background:rgba(240,80,112,0.1);border:1px solid rgba(240,80,112,0.3);border-radius:8px;padding:14px;margin-top:12px;font-size:12px;color:var(--red);line-height:1.6;';
+      note.innerHTML = `<strong>API Auth Error</strong><br>The browser cannot directly call the Anthropic API in this environment. To run the live chain test:<br><br>1. Clone the platform repo<br>2. Run <code style="background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:3px;">npm install && ANTHROPIC_API_KEY=your_key npm run dev</code><br>3. The agents will spin up on ports 8081–8083 and the chain will execute`;
+      container.appendChild(note);
+    }
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '▷ Execute Chain';
+  running = false;
+}
+
+// Add spin keyframe
+const style = document.createElement('style');
+style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
+document.head.appendChild(style);
+
+log('s', 'A2A Chain Executor initialized — 3 agents ready');
+log('i', 'Agents: Researcher → Analyst → Reporter');
+log('i', 'Protocol: A2A + ADK sequential chaining');
+</script>
+</body>
+</html>

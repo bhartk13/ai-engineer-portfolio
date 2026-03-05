@@ -1,0 +1,10 @@
+FROM node:20-alpine
+WORKDIR /app
+COPY package*.json tsconfig.json ./
+RUN npm ci
+COPY src/ ./src/
+RUN npm run build
+ARG AGENT_PORT=8081
+ENV AGENT_PORT=$AGENT_PORT
+EXPOSE $AGENT_PORT
+CMD ["node","dist/agents/example-agents.js"]

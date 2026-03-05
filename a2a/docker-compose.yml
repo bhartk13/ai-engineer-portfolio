@@ -1,0 +1,199 @@
+version: '3.9'
+
+services:
+  # ── Platform API (Orchestrator) ────────────────────────────────────────────
+  platform-api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - IBM_API_KEY=${IBM_API_KEY:-}
+      - IBM_REGION=${IBM_REGION:-us-south}
+      - REGISTRY_SERVER=${REGISTRY_SERVER:-us.icr.io}
+      - REGISTRY_NAMESPACE=${REGISTRY_NAMESPACE:-a2a-platform}
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    networks:
+      - a2a-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "a2a.service=platform-api"
+
+  # ── Research Agent ─────────────────────────────────────────────────────────
+  research-agent:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.agent
+    command: ["node", "dist/agents/example-agents.js", "--agent", "research"]
+    ports:
+      - "8081:8081"
+    environment:
+      - NODE_ENV=production
+      - AGENT_PORT=8081
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - MCP_SERVER_URL=http://mcp-data-server:9001
+    networks:
+      - a2a-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "a2a.agent=research"
+      - "a2a.framework=adk"
+
+  # ── Data Analysis Agent ────────────────────────────────────────────────────
+  data-analysis-agent:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.agent
+    command: ["node", "dist/agents/example-agents.js", "--agent", "analysis"]
+    ports:
+      - "8082:8082"
+    environment:
+      - NODE_ENV=production
+      - AGENT_PORT=8082
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - MCP_SERVER_URL=http://mcp-data-server:9001
+    networks:
+      - a2a-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "a2a.agent=data-analysis"
+      - "a2a.framework=adk"
+
+  # ── Report Generator Agent ─────────────────────────────────────────────────
+  report-agent:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.agent
+    command: ["node", "dist/agents/example-agents.js", "--agent", "report"]
+    ports:
+      - "8083:8083"
+    environment:
+      - NODE_ENV=production
+      - AGENT_PORT=8083
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    networks:
+      - a2a-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "a2a.agent=report-generator"
+      - "a2a.framework=adk"
+
+  # ── MCP Data Source Server ─────────────────────────────────────────────────
+  mcp-data-server:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.agent
+    command: ["node", "dist/agents/example-agents.js", "--agent", "mcp"]
+    ports:
+      - "9001:9001"
+    environment:
+      - NODE_ENV=production
+      - MCP_PORT=9001
+      - DATABASE_URL=${DATABASE_URL:-postgresql://localhost:5432/a2a}
+    networks:
+      - a2a-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "a2a.service=mcp-server"
+
+  # ── Frontend Dashboard ─────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    ports:
+      - "80:80"
+    environment:
+      - REACT_APP_API_URL=http://platform-api:3000
+    depends_on:
+      - platform-api
+    networks:
+      - a2a-network
+
+  # ── Infrastructure ─────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - a2a-network
+    command: redis-server --appendonly yes
+
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=a2a_platform
+      - POSTGRES_USER=a2a
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-changeme}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - a2a-network
+
+  # ── Observability ──────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - a2a-network
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./docker/grafana/dashboards:/etc/grafana/provisioning/dashboards
+    depends_on:
+      - prometheus
+    networks:
+      - a2a-network
+
+networks:
+  a2a-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  redis-data:
+  postgres-data:
+  grafana-data:

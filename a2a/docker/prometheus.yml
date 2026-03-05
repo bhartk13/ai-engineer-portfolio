@@ -1,0 +1,20 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: platform-api
+    static_configs:
+      - targets: ["platform-api:3000"]
+  - job_name: research-agent
+    static_configs:
+      - targets: ["research-agent:8081"]
+  - job_name: analysis-agent
+    static_configs:
+      - targets: ["data-analysis-agent:8082"]
+  - job_name: report-agent
+    static_configs:
+      - targets: ["report-agent:8083"]
+  - job_name: mcp-server
+    static_configs:
+      - targets: ["mcp-data-server:9001"]

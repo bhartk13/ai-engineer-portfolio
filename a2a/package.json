@@ -1,0 +1,42 @@
+{
+  "name": "a2a-agent-platform",
+  "version": "1.0.0",
+  "description": "Production-ready A2A Agent Platform with ADK, MCP, and IBM Agent Stack",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:agents\"",
+    "dev:api": "ts-node-dev --respawn --transpile-only src/api/server.ts",
+    "dev:agents": "ts-node-dev --respawn --transpile-only src/agents/example-agents.ts",
+    "build": "tsc",
+    "start": "node dist/api/server.js",
+    "start:agents": "node dist/agents/example-agents.js",
+    "test": "jest --passWithNoTests",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "k8s:deploy": "kubectl apply -f k8s/"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "uuid": "^9.0.0",
+    "ws": "^8.14.2",
+    "js-yaml": "^4.1.0",
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "compression": "^1.7.4",
+    "morgan": "^1.10.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/uuid": "^9.0.7",
+    "@types/ws": "^8.5.9",
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.2",
+    "ts-node-dev": "^2.0.0",
+    "ts-node": "^10.9.2",
+    "concurrently": "^8.2.2",
+    "jest": "^29.7.0",
+    "@types/jest": "^29.5.8"
+  }
+}
