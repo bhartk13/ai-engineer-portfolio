@@ -1084,6 +1084,40 @@ function RoadmapPage({ onGoToConcepts }) {
                 🧠 Open Deep-Dive →
               </button>
             </div>
+
+            <div style={{ ...card, padding: 20, marginBottom: 14, borderTop: "3px solid #0066ff", background: "#ffffff" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 14, flexWrap: "wrap", alignItems: "flex-start" }}>
+                <div style={{ flex: 1, minWidth: 280 }}>
+                  <div style={{ fontSize: 10, color: "#0066ff", fontWeight: 800, letterSpacing: "2px", textTransform: "uppercase", marginBottom: 8 }}>LangChain Framework Overview</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>How the pieces fit together</div>
+                  <div style={{ fontSize: 13, color: "#475569", lineHeight: 1.7 }}>
+                    LangChain helps you build LLM apps by composing <strong>prompts</strong>, <strong>models</strong>, <strong>tools</strong>, and <strong>retrieval</strong> into reliable workflows.
+                    The concepts below are the “core primitives” you’ll combine in real projects.
+                  </div>
+                </div>
+
+                <div style={{ minWidth: 280, flex: 1 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    {[
+                      { k: "Models", v: "ChatLLMs you call (OpenAI/Anthropic/Ollama)" },
+                      { k: "Prompts", v: "Reusable templates + message structure" },
+                      { k: "LCEL", v: "Compose pipelines: prompt | llm | parser" },
+                      { k: "Tools", v: "Functions the model can call" },
+                      { k: "RAG", v: "Retrieve context from your data (vector store)" },
+                      { k: "Memory", v: "Conversation state + message history" },
+                      { k: "LangGraph", v: "Stateful graphs for complex agent flows" },
+                      { k: "LangSmith", v: "Tracing, evals, and observability" },
+                    ].map((item, i) => (
+                      <div key={i} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px 12px" }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 800, color: "#0f172a", marginBottom: 3 }}>{item.k}</div>
+                        <div style={{ fontSize: 11.5, color: "#64748b", lineHeight: 1.45 }}>{item.v}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
               {conceptsSnippets.map((c, i) => (
                 <div key={i} onClick={() => onGoToConcepts(c.deepId)} style={{ ...card, padding: 20, display: "flex", gap: 14, alignItems: "flex-start", cursor: "pointer", transition: "box-shadow 0.15s", borderLeft: "3px solid transparent" }}
