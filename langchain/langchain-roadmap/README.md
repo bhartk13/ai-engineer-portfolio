@@ -103,37 +103,16 @@ Replace `YOUR_USERNAME` with your GitHub username.
 
 ## 🌐 Deploy for Free (Optional but recommended for portfolio)
 
-### Option A — Vercel (easiest)
+### Vercel (easiest)
 
 ```bash
 npm install -g vercel
-vercel
+vercel .
 ```
 
 Follow the prompts. Your app will be live at `https://langchain-roadmap.vercel.app` in ~60 seconds.
 
-### Option B — GitHub Pages
-
-```bash
-npm install --save-dev gh-pages
-```
-
-Add to `package.json`:
-
-```json
-"homepage": "https://YOUR_USERNAME.github.io/langchain-roadmap",
-"scripts": {
-  "predeploy": "npm run build",
-  "deploy": "gh-pages -d dist"
-}
-```
-
-Then run:
-
-```bash
-npm run deploy
-```
-
+Current URL: https://langchain-roadmap-93tlj66k2-bharteeshs-projects.vercel.app
 ---
 
 ## 🛠 Tech Stack
