@@ -28,9 +28,12 @@ I’m focused on building **AI agents, RAG pipelines, and intelligent applicatio
 ## ✅ Current Projects
 | Project | Description | Status |
 |--------|-------------|--------|
-| **RAG Customer Support Bot** | Fetches answers from custom knowledge base using embeddings | 🚧 In progress |
-| **Agentic AI** | Multi agent research + analysis using CrewAI | ✅ Active |
-| **Kaggle Competition** | Improving public solutions and tracking leaderboard progress | 🚀 Started |
+| [RAG Customer Support Chatbot](llm_fundamentals/rag-customer-support-chatbot/README.md) | End-to-end RAG chatbot using OpenAI + LangChain + ChromaDB to answer questions from custom docs via embeddings. | ✅ Active |
+| [AI Function Calling Agent](llm_fundamentals/function_calling_agent/README.md) | Production-style agent that uses the function-calling pattern to safely call tools/APIs, with FastAPI gateway and orchestration loop. | ✅ Active |
+| [Comm Coach](comm-coach/README.md) | Local-first speaking coach that records audio, runs Whisper transcription, tracks metrics (WPM, fillers, clarity), and offers optional AI coaching. | 🚧 In progress |
+| [A2A Agent Platform](a2a/README.md) | Multi-agent platform implementing the A2A protocol with ADK chains, MCP data integration, and Docker/K8s-ready deployment. | 🚧 In progress |
+| [AI SaaS Idea Generator](samples/saas/README.md) | Next.js + FastAPI demo that streams AI-generated SaaS ideas for the agent economy with a polished, Vercel-ready UI. | ✅ Active |
+| [MCP Financial POC](mcp/mcp-fin/README.md) | Financial MCP server + gateway/CLI demo showcasing standardized tool exposure over MCP for agentic apps. | 🧪 Prototype |
 
 ---
 
