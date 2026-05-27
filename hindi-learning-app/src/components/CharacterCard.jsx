@@ -2,7 +2,7 @@ import { useState } from 'react'
 import './CharacterCard.css'
 import audioService from '../services/AudioService'
 
-function CharacterCard({ character, romanization, audioFile, color }) {
+function CharacterCard({ character, romanization, audioFile, color, compact = false, vowelLabel }) {
   const [isPlaying, setIsPlaying] = useState(false)
 
   const handleClick = async () => {
@@ -18,7 +18,7 @@ function CharacterCard({ character, romanization, audioFile, color }) {
 
   return (
     <div 
-      className={`character-card ${isPlaying ? 'playing' : ''}`}
+      className={`character-card ${compact ? 'compact' : ''} ${isPlaying ? 'playing' : ''}`}
       onClick={handleClick}
       style={{ backgroundColor: color }}
       role="button"
@@ -30,6 +30,7 @@ function CharacterCard({ character, romanization, audioFile, color }) {
         }
       }}
     >
+      {vowelLabel && <div className="character-vowel-label">{vowelLabel}</div>}
       <div className="character-hindi">{character}</div>
       <div className="character-romanization">{romanization}</div>
     </div>

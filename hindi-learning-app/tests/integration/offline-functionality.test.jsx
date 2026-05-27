@@ -30,8 +30,9 @@ describe('Offline Functionality and Asset Loading', () => {
       const alphabetButton = screen.getByText(/Alphabet/i);
       await user.click(alphabetButton);
       
-      // Should show alphabet module
-      expect(screen.getByText(/Vowels/i)).toBeInTheDocument();
+      // Should show alphabet module with barahkhadi
+      expect(screen.getByRole('heading', { name: /Vowels \(स्वर\)/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /Barahkhadi/i })).toBeInTheDocument();
     });
 
     it('should navigate to words module', async () => {

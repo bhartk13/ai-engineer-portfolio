@@ -63,6 +63,33 @@
   animation: pulse 0.3s ease-in-out;
 }
 
+.character-vowel-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 0.15rem;
+  opacity: 0.9;
+}
+
+.character-card.compact {
+  min-height: 95px;
+  padding: 0.6rem 0.5rem;
+}
+
+.character-card.compact .character-hindi {
+  font-size: 2rem;
+  margin-bottom: 0.25rem;
+}
+
+.character-card.compact .character-romanization {
+  font-size: 0.85rem;
+  padding: 0.2rem 0.5rem;
+}
+
+.character-card.compact .character-vowel-label {
+  font-size: 0.65rem;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .character-card {
@@ -83,6 +110,15 @@
   .character-card {
     min-height: 100px;
     padding: 0.8rem;
+  }
+
+  .character-card.compact {
+    min-height: 80px;
+    padding: 0.5rem 0.35rem;
+  }
+
+  .character-card.compact .character-hindi {
+    font-size: 1.6rem;
   }
 
   .character-hindi {

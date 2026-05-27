@@ -72,6 +72,57 @@ def generate_audio(polly_client, text, output_path, voice_id=POLLY_VOICE_ID):
         print(f"❌ Error generating audio for '{text}': {error}")
         return False
 
+def generate_barahkhadi_audio(polly_client):
+    """Generate audio for all barahkhadi (consonant + vowel) forms"""
+    print("\n🔤 Generating barahkhadi audio files...")
+
+    # Vowel keys and matras (must match src/utils/barahkhadi.js)
+    barahkhadi_vowels = [
+        ('a', ''),
+        ('aa', '\u093E'),
+        ('i', '\u093F'),
+        ('ee', '\u0940'),
+        ('u', '\u0941'),
+        ('oo', '\u0942'),
+        ('e', '\u0947'),
+        ('ai', '\u0948'),
+        ('o', '\u094B'),
+        ('au', '\u094C'),
+        ('am', '\u0902'),
+        ('ah', '\u0903'),
+    ]
+
+    with open(DATA_DIR / 'characters.json', 'r', encoding='utf-8') as f:
+        characters = json.load(f)
+
+    consonants = [c for c in characters if c['type'] == 'consonant']
+    success_count = 0
+    total_count = len(consonants) * len(barahkhadi_vowels)
+
+    for consonant in consonants:
+        audio_file_path = consonant['audioFile']
+        consonant_key = audio_file_path.rsplit('/', 1)[-1].replace('.mp3', '')
+        base_code = ord(consonant['hindi'][0])
+
+        for vowel_key, matra in barahkhadi_vowels:
+            if vowel_key == 'a':
+                hindi_text = consonant['hindi']
+            else:
+                hindi_text = chr(base_code) + matra
+
+            audio_file = f'audio/barahkhadi/{consonant_key}/{vowel_key}.mp3'
+            output_path = SCRIPT_DIR / 'public' / audio_file
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+
+            print(f"  Generating: {hindi_text} ({consonant_key}/{vowel_key}) -> {audio_file}")
+            if generate_audio(polly_client, hindi_text, output_path):
+                success_count += 1
+            else:
+                print(f"    ⚠️ Failed to generate audio for {hindi_text}")
+
+    print(f"✅ Generated {success_count}/{total_count} barahkhadi audio files")
+    return success_count, total_count
+
 def generate_character_audio(polly_client):
     """Generate audio for all Hindi characters"""
     print("\n📝 Generating character audio files...")
@@ -176,18 +227,20 @@ def main():
     
     # Generate all audio files
     char_success, char_total = generate_character_audio(polly_client)
+    barahkhadi_success, barahkhadi_total = generate_barahkhadi_audio(polly_client)
     word_success, word_total = generate_word_audio(polly_client)
     phrase_success, phrase_total = generate_phrase_audio(polly_client)
     
     # Summary
-    total_success = char_success + word_success + phrase_success
-    total_files = char_total + word_total + phrase_total
+    total_success = char_success + barahkhadi_success + word_success + phrase_success
+    total_files = char_total + barahkhadi_total + word_total + phrase_total
     
     print("\n" + "=" * 60)
     print("📊 SUMMARY")
     print("=" * 60)
-    print(f"Characters: {char_success}/{char_total}")
-    print(f"Words:      {word_success}/{word_total}")
+    print(f"Characters:  {char_success}/{char_total}")
+    print(f"Barahkhadi:  {barahkhadi_success}/{barahkhadi_total}")
+    print(f"Words:       {word_success}/{word_total}")
     print(f"Phrases:    {phrase_success}/{phrase_total}")
     print(f"TOTAL:      {total_success}/{total_files}")
     print("=" * 60)
