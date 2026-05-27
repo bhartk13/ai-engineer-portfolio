@@ -19,6 +19,7 @@ describe('Offline Functionality and Asset Loading', () => {
       // Main menu should be visible
       expect(screen.getByText(/Learn Hindi!/i)).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Learn the Hindi Alphabet/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Test your Hindi alphabet/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Learn Hindi Words/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Learn Hindi Phrases/i })).toBeInTheDocument();
     });
@@ -27,12 +28,23 @@ describe('Offline Functionality and Asset Loading', () => {
       const user = userEvent.setup();
       render(<App />);
       
-      const alphabetButton = screen.getByText(/Alphabet/i);
+      const alphabetButton = screen.getByRole('button', { name: /Learn the Hindi Alphabet/i });
       await user.click(alphabetButton);
       
       // Should show alphabet module with barahkhadi
       expect(screen.getByRole('heading', { name: /Vowels \(स्वर\)/i })).toBeInTheDocument();
       expect(screen.getByRole('heading', { name: /Barahkhadi/i })).toBeInTheDocument();
+    });
+
+    it('should navigate to alphabet quiz module', async () => {
+      const user = userEvent.setup();
+      render(<App />);
+
+      const quizButton = screen.getByRole('button', { name: /Test your Hindi alphabet/i });
+      await user.click(quizButton);
+
+      expect(screen.getByRole('heading', { name: /Alphabet Quiz/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Start Quiz/i })).toBeInTheDocument();
     });
 
     it('should navigate to words module', async () => {

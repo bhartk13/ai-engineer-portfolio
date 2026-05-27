@@ -2,6 +2,7 @@ import { useState } from 'react'
 import './App.css'
 import MainMenu from './components/MainMenu'
 import AlphabetModule from './components/AlphabetModule'
+import AlphabetQuizModule from './components/AlphabetQuizModule'
 import WordsModule from './components/WordsModule'
 import BackButton from './components/BackButton'
 
@@ -27,6 +28,12 @@ function App() {
       {currentView === 'alphabet' && (
         <div className="view-container">
           <AlphabetModule onBack={navigateToMenu} />
+        </div>
+      )}
+
+      {currentView === 'quiz' && (
+        <div className="view-container">
+          <AlphabetQuizModule onBack={navigateToMenu} />
         </div>
       )}
       

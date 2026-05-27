@@ -5,6 +5,7 @@ A colorful, interactive Hindi-learning application designed for children that ru
 ## Features
 
 - **Alphabet Module**: Learn Hindi vowels, consonants, and barahkhadi (बारहखड़ी — ka, kaa, ki, kee, ku, etc. for each consonant) with audio pronunciations
+- **Alphabet Quiz**: Beginner sound-identification test — hear a letter and pick the correct Hindi character (vowels, consonants, or both)
 - **Words Module**: Explore common Hindi words organized by categories (animals, colors, numbers, family)
 - **Phrases Module**: Practice simple Hindi phrases with English translations
 - **Audio Playback**: Click any character, word, or phrase to hear its pronunciation

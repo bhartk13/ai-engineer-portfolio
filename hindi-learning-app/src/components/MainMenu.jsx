@@ -16,6 +16,16 @@ function MainMenu({ onNavigate }) {
           <span className="button-text">Alphabet</span>
           <span className="button-description">Learn Hindi letters</span>
         </button>
+
+        <button
+          className="menu-button quiz-button"
+          onClick={() => onNavigate('quiz')}
+          aria-label="Test your Hindi alphabet knowledge"
+        >
+          <span className="button-icon">🎯</span>
+          <span className="button-text">Alphabet Quiz</span>
+          <span className="button-description">Identify letters from sound</span>
+        </button>
         
         <button 
           className="menu-button words-button"
