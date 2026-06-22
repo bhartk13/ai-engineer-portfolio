@@ -2,15 +2,83 @@
   font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* ── Light theme (default) — no pure white surfaces ──── */
+  --bg: #b4c2d8;
+  --bg-grad: radial-gradient(1200px 600px at 100% -10%, #9ec5f8 0%, transparent 55%),
+             radial-gradient(900px 500px at -10% 0%, #c4b5fd 0%, transparent 50%),
+             #b4c2d8;
+  --surface: #c5d0e3;
+  --surface-2: #b8c6dc;
+  --surface-3: #abbdd5;
+  --border: #94a8c4;
+  --border-strong: #7d93b3;
+  --text: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --text-subtle: #94a3b8;
+  --primary: #2563eb;
+  --primary-strong: #1d4ed8;
+  --primary-soft: #a8c4f5;
+  --callout-warn-bg: #e8dcc0;
+  --callout-warn-border: #c9b070;
+  --callout-warn-text: #5c4a12;
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 16px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 12px 40px rgba(15, 23, 42, 0.12);
+  --code-bg: #1e1e2e;
+  --code-bar: #16162a;
+  --code-border: #2d2d42;
+  --code-text: #cdd6f4;
+  --sidebar-bg: #0f172a;
+  --sidebar-text: #cbd5e1;
+  --sidebar-muted: #64748b;
+  --sidebar-active: #1e293b;
+
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --bg: #0b1120;
+  --bg-grad: radial-gradient(1200px 600px at 100% -10%, #14233f 0%, transparent 60%),
+             radial-gradient(900px 500px at -10% 0%, #1e1530 0%, transparent 55%),
+             #0b1120;
+  --surface: #111a2e;
+  --surface-2: #0f1729;
+  --surface-3: #1a2540;
+  --border: #1e2a44;
+  --border-strong: #2c3a5a;
+  --text: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-subtle: #64748b;
+  --primary: #3b82f6;
+  --primary-strong: #60a5fa;
+  --primary-soft: #16233f;
+  --callout-warn-bg: #2a2410;
+  --callout-warn-border: #5c4a1a;
+  --callout-warn-text: #fde68a;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.6);
+  --code-bg: #0a0e1a;
+  --code-bar: #070a14;
+  --code-border: #1c2335;
+  --code-text: #cdd6f4;
+  --sidebar-bg: #070b16;
+  --sidebar-text: #cbd5e1;
+  --sidebar-muted: #5b6b80;
+  --sidebar-active: #16233f;
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 html,
@@ -18,56 +86,173 @@ body,
 #root {
   height: 100%;
   width: 100%;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+  background: var(--bg-grad);
+  background-attachment: fixed;
 }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+  color: var(--text);
 }
 
 button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
+::selection {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* Scrollbars */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--text-subtle);
+  background-clip: content-box;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
   }
-  a:hover {
-    color: #747bff;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
-  button {
-    background-color: #f9f9f9;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes flipIn {
+  from {
+    opacity: 0;
+    transform: rotateY(-90deg);
+  }
+  to {
+    opacity: 1;
+    transform: rotateY(0);
+  }
+}
+@keyframes pop {
+  0% {
+    transform: scale(0.9);
+  }
+  60% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+
+.page-enter {
+  animation: fadeInUp 0.3s ease both;
+}
+
+.lc-link {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+.lc-link:hover {
+  text-decoration: underline;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ── Responsive layout ─────────────────────────────────── */
+@media (max-width: 1024px) {
+  .lc-rail {
+    /* roadmap left rail collapses into horizontal scroller */
+  }
+}
+
+@media (max-width: 860px) {
+  .lc-grid-2 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .lc-hamburger {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+  .lc-sidebar {
+    position: fixed !important;
+    left: 0;
+    top: 0;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.4);
+  }
+  .lc-sidebar[data-open="true"] {
+    transform: translateX(0);
+  }
+}
+
+@media (max-width: 900px) {
+  .lc-learn-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .lc-rail {
+    display: flex;
+    overflow-x: auto;
+    gap: 12px;
+    padding-bottom: 6px;
+  }
+  .lc-rail > div {
+    margin-bottom: 0 !important;
+    min-width: 200px;
+  }
+}
+
+@media (min-width: 769px) {
+  .sidebar-overlay {
+    display: none !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .lc-topbar-title {
+    display: none;
+  }
+  main {
+    padding: 18px 16px 40px !important;
   }
 }

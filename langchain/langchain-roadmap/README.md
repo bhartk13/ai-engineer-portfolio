@@ -1,18 +1,21 @@
-# ⛓ LangChain Mastery Roadmap
+# ⛓ LangChain Learning Lab
 
-An interactive 2-week learning roadmap for LangChain & Agentic AI development — built as a React component. Includes day-by-day plans, copy-ready code samples, 5 portfolio project blueprints, key concepts, and a low-cost API strategy.
-
-> **Live preview:** Open `langchain-roadmap.jsx` directly on [Claude.ai](https://claude.ai) as an Artifact, or run locally with Vite (instructions below).
+A **comprehensive, interactive learning app for LangChain & Agentic AI**, built with React + Vite. It combines a structured roadmap, deep-dive concept explainers, quizzes, flashcards, a searchable glossary, and portfolio project blueprints — with **progress tracking** and a **light/dark theme** that persist in your browser.
 
 ---
 
 ## 📸 Features
 
-- 📅 **7-block 2-week roadmap** with copyable code for each day
-- 🚀 **5 portfolio project blueprints** with GitHub folder structure
-- 🧠 **8 core LangChain concepts** explained simply
-- 💰 **Cost guide** — complete this roadmap for under $3 in API costs
-- 🎨 Dark terminal aesthetic, fully responsive
+- 🏠 **Dashboard** — progress ring, stats, "continue learning", and quick links
+- 📅 **2-week roadmap** — 7 lessons with objectives, copyable code, tips, docs & completion tracking
+- 🧠 **8 deep-dive concepts** — TL;DR, why it matters, analogy, step-by-step, code, gotchas, mastery tracking
+- 📝 **Quizzes** — 4 topic quizzes with instant feedback, explanations, and saved best scores
+- 🃏 **Flashcards** — 5 decks of flip cards for active-recall practice
+- 📖 **Glossary** — 34 searchable, category-filtered terms
+- 🚀 **5 portfolio projects** — folder structure, wow-factor, and links to the concepts each one uses
+- 💰 **Cost guide** — complete everything for under $5 in API costs
+- 🔍 **Global search** across lessons, concepts, terms, quizzes, and projects
+- 🌗 **Light/dark theme** + **localStorage progress** — fully responsive
 
 ---
 
@@ -21,7 +24,12 @@ An interactive 2-week learning roadmap for LangChain & Agentic AI development �
 ```
 langchain-roadmap/
 ├── src/
-│   └── App.jsx              ← Main component (paste langchain-roadmap.jsx here)
+│   ├── App.jsx              ← Layout + routing
+│   ├── store.jsx           ← Theme + progress contexts (localStorage)
+│   ├── index.css           ← Design system + light/dark themes
+│   ├── components/         ← Sidebar, TopBar (search), shared UI, CodeBlock
+│   ├── pages/             ← Dashboard, Learn, Concepts, Quizzes, Flashcards, Glossary, Projects, CostGuide
+│   └── data/              ← Content modules (roadmap, concepts, quizzes, flashcards, glossary, …)
 ├── index.html
 ├── package.json
 ├── vite.config.js
@@ -34,40 +42,25 @@ langchain-roadmap/
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) v18 or higher
+- [Node.js](https://nodejs.org/) v20.19+ or v22.12+ (required by Vite 7)
 - npm (comes with Node)
 
-### Step 1 — Create a new Vite + React project
+### Steps
 
 ```bash
-npm create vite@latest langchain-roadmap -- --template react
-cd langchain-roadmap
+npm install     # install dependencies
+npm run dev     # start the dev server
 ```
 
-### Step 2 — Install dependencies
+Open your browser at **http://localhost:5173** — the app will be live with hot reload. ✅
+
+Other scripts:
 
 ```bash
-npm install
+npm run build    # production build into dist/
+npm run preview  # preview the production build
+npm run lint     # run ESLint
 ```
-
-### Step 3 — Replace the default App
-
-Copy `langchain-roadmap.jsx` into the project and replace `src/App.jsx`:
-
-```bash
-# If you downloaded langchain-roadmap.jsx to your Downloads folder:
-cp ~/Downloads/langchain-roadmap.jsx src/App.jsx
-```
-
-Or open `src/App.jsx` in your editor, delete all contents, and paste in the full code from `langchain-roadmap.jsx`.
-
-### Step 4 — Start the dev server
-
-```bash
-npm run dev
-```
-
-Open your browser at **http://localhost:5173** — the roadmap will be live with hot reload. ✅
 
 ---
 
@@ -119,12 +112,12 @@ Current URL: https://langchain-roadmap-93tlj66k2-bharteeshs-projects.vercel.app
 
 | Tool | Purpose |
 |------|---------|
-| React 18 | UI framework |
-| Vite | Dev server & bundler |
-| Tailwind (inline styles) | Styling — no install needed |
-| lucide-react (optional) | Icons |
+| React 19 | UI framework |
+| Vite 7 | Dev server & bundler |
+| CSS variables + inline styles | Theming (light/dark) — no CSS framework needed |
+| localStorage | Progress & theme persistence |
 
-No external dependencies beyond React — this is a zero-config component.
+No external UI dependencies beyond React — styling is a self-contained design system.
 
 ---
 
