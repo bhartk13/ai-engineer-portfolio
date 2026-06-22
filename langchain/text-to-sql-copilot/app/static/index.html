@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Ask business questions in plain English and get SQL-backed answers from PostgreSQL." />
+  <title>Text-to-SQL Copilot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/styles.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar" aria-label="Navigation and schema">
+      <div class="sidebar-header">
+        <div class="logo">
+          <span class="logo-icon" aria-hidden="true">⌁</span>
+          <div>
+            <strong>SQL Copilot</strong>
+            <span>LangGraph · FastAPI</span>
+          </div>
+        </div>
+        <button class="icon-btn sidebar-close" id="sidebar-close" aria-label="Close sidebar">✕</button>
+      </div>
+
+      <div class="status-card" id="health-card">
+        <div class="status-row">
+          <span class="status-dot" id="health-dot"></span>
+          <span id="health-label">Checking status…</span>
+        </div>
+        <div class="status-meta" id="health-meta"></div>
+      </div>
+
+      <section class="sidebar-section">
+        <h2>Sample questions</h2>
+        <div class="chip-list" id="example-chips"></div>
+      </section>
+
+      <section class="sidebar-section">
+        <h2>Database schema</h2>
+        <div class="schema-list" id="schema-list"></div>
+      </section>
+
+      <section class="sidebar-section sidebar-actions">
+        <label class="toggle">
+          <input type="checkbox" id="cache-bypass" />
+          <span>Bypass cache</span>
+        </label>
+        <button class="ghost-btn" id="clear-cache-btn" type="button">Clear cache</button>
+        <div class="cache-stats" id="cache-stats"></div>
+      </section>
+    </aside>
+
+    <!-- Main -->
+    <div class="main">
+      <header class="topbar">
+        <button class="icon-btn menu-btn" id="sidebar-open" aria-label="Open sidebar">☰</button>
+        <div class="topbar-title">
+          <h1>Text-to-SQL Copilot</h1>
+          <p>Natural language → validated SQL → live PostgreSQL results</p>
+        </div>
+        <a class="api-link" href="/docs" target="_blank" rel="noopener">API Docs</a>
+      </header>
+
+      <div class="workspace">
+        <!-- History rail -->
+        <nav class="history-rail" aria-label="Query history">
+          <div class="history-header">
+            <span>History</span>
+            <button class="text-btn" id="clear-history" type="button">Clear</button>
+          </div>
+          <ul class="history-list" id="history-list"></ul>
+        </nav>
+
+        <!-- Results area -->
+        <div class="content">
+          <div class="empty-state" id="empty-state">
+            <div class="empty-icon" aria-hidden="true">💬</div>
+            <h2>Ask a business question</h2>
+            <p>Try “What was total revenue by country?” or pick a sample from the sidebar.</p>
+          </div>
+
+          <div class="result-stack hidden" id="result-stack">
+            <!-- Question -->
+            <article class="card question-card">
+              <div class="card-label">Question</div>
+              <p id="display-question"></p>
+            </article>
+
+            <!-- Answer -->
+            <article class="card answer-card">
+              <div class="card-header">
+                <div class="card-label">Answer</div>
+                <div class="badges" id="badges"></div>
+              </div>
+              <div class="answer-body" id="display-answer"></div>
+            </article>
+
+            <!-- SQL -->
+            <article class="card sql-card hidden" id="sql-card">
+              <div class="card-header">
+                <div class="card-label">Generated SQL</div>
+                <button class="ghost-btn copy-btn" id="copy-sql" type="button">Copy</button>
+              </div>
+              <pre class="sql-block"><code id="display-sql"></code></pre>
+            </article>
+
+            <!-- Table -->
+            <article class="card table-card hidden" id="table-card">
+              <div class="card-header">
+                <div class="card-label">Results</div>
+                <span class="row-count" id="row-count"></span>
+              </div>
+              <div class="table-wrap">
+                <table id="results-table">
+                  <thead id="table-head"></thead>
+                  <tbody id="table-body"></tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+        </div>
+      </div>
+
+      <!-- Composer -->
+      <footer class="composer">
+        <form id="query-form" class="composer-form">
+          <div class="input-wrap">
+            <label class="sr-only" for="question">Your question</label>
+            <textarea
+              id="question"
+              rows="1"
+              placeholder="Ask anything about customers, orders, products, or revenue…"
+              maxlength="500"
+              required
+            ></textarea>
+            <span class="char-count" id="char-count">0/500</span>
+          </div>
+          <button type="submit" id="submit-btn" class="submit-btn">
+            <span class="btn-label">Run query</span>
+            <span class="spinner hidden" id="spinner" aria-hidden="true"></span>
+          </button>
+        </form>
+        <p class="composer-hint">Read-only SQL · Max 100 rows · Validated before execution</p>
+      </footer>
+    </div>
+  </div>
+
+  <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="/static/js/app.js" type="module"></script>
+</body>
+</html>
