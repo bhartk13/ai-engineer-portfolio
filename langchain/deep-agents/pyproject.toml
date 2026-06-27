@@ -1,0 +1,19 @@
+[project]
+name = "deep-agents-langchain"
+version = "0.1.0"
+description = "Deep Agent demo with dynamic SKILL.md loading and multi-agent orchestration via LangChain"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "deepagents>=0.4.12",
+    "langchain-anthropic>=1.4.0",
+    "langchain-openai>=1.1.12",
+    "python-dotenv>=1.2.2",
+    "tavily-python>=0.7.23",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+    "streamlit>=1.55.0",
+]
+
+[project.scripts]
+deep-agents = "main:main"

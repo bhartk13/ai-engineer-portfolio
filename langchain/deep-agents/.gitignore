@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv/
+venv/
+
+# Secrets and local state
+.env
+.streamlit/
+
+# Agent workspace artifacts (generated at runtime)
+workspace/*
+!workspace/.gitkeep
+
+# Run history (orchestration logs)
+runs/*
+!runs/.gitkeep
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
