@@ -9,10 +9,8 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
-from agent import WORKSPACE_ROOT
+from config import RUNS_ROOT, WORKSPACE_ROOT
 from services.project_data import list_workspace_files, read_workspace_file
-
-RUNS_ROOT = os.getenv("RUNS_ROOT", "./runs")
 
 
 def _ensure_runs_dir() -> None:

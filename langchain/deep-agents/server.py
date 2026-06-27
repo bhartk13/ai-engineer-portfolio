@@ -11,10 +11,11 @@ from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from agent import WORKSPACE_ROOT
+from config import RUNS_ROOT, WORKSPACE_ROOT
 from services.agent_service import stream_agent_events
 from services.project_data import (
     clear_workspace,
+    get_latest_deploy,
     list_skills,
     list_workspace_files,
     read_agents_md,
@@ -24,7 +25,7 @@ from services.run_history import get_run, list_runs
 
 load_dotenv()
 os.makedirs(WORKSPACE_ROOT, exist_ok=True)
-os.makedirs(os.getenv("RUNS_ROOT", "./runs"), exist_ok=True)
+os.makedirs(RUNS_ROOT, exist_ok=True)
 
 app = FastAPI(title="Deep Agents API", version="0.2.0")
 
@@ -39,6 +40,7 @@ app.add_middleware(
 
 class ChatRequest(BaseModel):
     prompt: str
+    thread_id: str | None = None
 
 
 @app.get("/api/health")
@@ -84,6 +86,12 @@ def delete_workspace():
     return {"removed": clear_workspace()}
 
 
+@app.get("/api/deploy/latest")
+def latest_deploy():
+    deploy = get_latest_deploy()
+    return deploy or {"url": "", "status": "none", "report_path": ""}
+
+
 @app.get("/api/runs")
 def runs(limit: int = 20):
     return {"runs": list_runs(limit=limit)}
@@ -104,7 +112,7 @@ def chat(request: ChatRequest):
         raise HTTPException(status_code=400, detail="Prompt cannot be empty.")
 
     return StreamingResponse(
-        stream_agent_events(prompt),
+        stream_agent_events(request.prompt, thread_id=request.thread_id),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",

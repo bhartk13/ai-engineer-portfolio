@@ -73,7 +73,7 @@ export function SuggestedPrompts({
   disabled?: boolean;
 }) {
   const prompts = [
-    "Research multi-agent orchestration trends and draft a short blog post.",
+    "Research multi-agent orchestration trends, draft a blog post, save it, and deploy to a free cloud page.",
     "Review agent.py for production readiness and save findings.",
     "Research LangGraph patterns, write an executive summary, then review the draft.",
   ];

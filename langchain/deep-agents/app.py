@@ -7,7 +7,8 @@ import os
 import streamlit as st
 from dotenv import load_dotenv
 
-from agent import WORKSPACE_ROOT, get_deep_agent
+from agent import get_deep_agent
+from config import WORKSPACE_ROOT
 
 load_dotenv()
 

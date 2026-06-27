@@ -10,15 +10,21 @@ from deepagents.backends import FilesystemBackend
 from dotenv import load_dotenv
 from langchain_anthropic import ChatAnthropic
 from langchain_openai import ChatOpenAI
+from langgraph.checkpoint.memory import MemorySaver
 from tavily import TavilyClient
+
+from config import (
+    DEFAULT_ANTHROPIC_MODEL,
+    DEFAULT_OPENAI_MODEL,
+    MEMORY_FILES,
+    SKILLS_ROOT,
+    WORKSPACE_ROOT,
+)
+from services.static_deploy import deploy_static_site
 
 load_dotenv()
 
-SKILLS_ROOT = "./skills"
-MEMORY_FILES = ["./AGENTS.md"]
-WORKSPACE_ROOT = os.getenv("WORKSPACE_ROOT", "./workspace")
-DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
-DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-20250514"
+_checkpointer = MemorySaver()
 
 tavily_api_key = os.getenv("TAVILY_API_KEY")
 tavily = TavilyClient(api_key=tavily_api_key) if tavily_api_key else None
@@ -46,14 +52,25 @@ Specialized workflows live in SKILL.md files under `skills/`. Load them on deman
 2. **Route via skills**: You only see skill names and descriptions initially.
    Before specialized work, use `read_file` to load the matching `skills/<name>/SKILL.md`.
 3. **Delegate**: Use the `task` tool with the `general-purpose` subagent for independent
-   sub-tasks (research passes, drafting, code review). Subagents share the same skill library.
-4. **Collaborate via files**: Pass work between agents through `./workspace/` — researchers
+   sub-tasks (research passes, drafting, code review, deployment). Subagents share the same skill library.
+4. **Collaborate via files**: Pass work between agents through `/workspace/` — researchers
    write notes, writers read them, reviewers comment on artifacts.
 5. **Conventions**: Follow `AGENTS.md` for team roles and file naming.
 
+## Autonomy (mandatory)
+
+- Complete multi-step tasks **end-to-end** without asking the user to pick options.
+- **Never ask** which cloud platform, framework, or format to use — apply defaults from AGENTS.md.
+- **Deployment:** when the user wants a free cloud page, load `static-deploy` and call
+  `deploy_static_site`. Default platform is **Netlify** (auto-selected).
+- If the user sends a short follow-up in the same thread, treat it as input for the
+  **current task**, not a brand-new unrelated request.
+- Record decisions in workspace files; return URLs and file paths in the final answer.
+
 ## Constraints
 
-- NEVER write files outside `./workspace/`.
+- NEVER write files outside `/workspace/` (virtual path → project `workspace/` folder).
+- Use paths like `/workspace/draft_topic.md`, not `blogs/` or other directories.
 - NEVER use `/tmp/` for persistence.
 - Load a skill before executing its workflow.
 - Prefer subagents when a sub-task would clutter the main thread.
@@ -93,13 +110,11 @@ def _build_model():
     if provider == "anthropic":
         return anthropic_model()
 
-    # auto: prefer the provider with a configured key
     if anthropic_key and not openai_key:
         return anthropic_model()
     if openai_key and not anthropic_key:
         return openai_model()
     if openai_key:
-        # Both keys present — OpenAI is the safer default for local demos
         return openai_model()
     if anthropic_key:
         return anthropic_model()
@@ -116,9 +131,10 @@ def get_deep_agent():
     return create_deep_agent(
         model=_build_model(),
         system_prompt=ORCHESTRATOR_PROMPT,
-        tools=[internet_search],
+        tools=[internet_search, deploy_static_site],
         skills=[SKILLS_ROOT],
         memory=MEMORY_FILES,
-        backend=FilesystemBackend(root_dir="."),
+        backend=FilesystemBackend(root_dir=".", virtual_mode=True),
+        checkpointer=_checkpointer,
         name="deep_agent_orchestrator",
     )

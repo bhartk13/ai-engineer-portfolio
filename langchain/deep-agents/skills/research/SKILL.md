@@ -26,7 +26,7 @@ and persist notes for other agents.
    - Executive summary (3–5 bullets)
    - Key findings by theme
    - Sources / search queries used
-5. Save to `./workspace/research_<short_topic>.md` using a descriptive slug.
+5. Save to `/workspace/research_<short_topic>.md` using a descriptive slug.
 
 ## Handoff
 

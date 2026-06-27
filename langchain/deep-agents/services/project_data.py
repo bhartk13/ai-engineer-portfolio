@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import os
+import re
 
-from agent import WORKSPACE_ROOT
+from config import WORKSPACE_ROOT
 
 SKILLS_DIR = "./skills"
 AGENTS_MD_PATH = "./AGENTS.md"
@@ -77,6 +78,35 @@ def clear_workspace() -> int:
         os.remove(os.path.join(WORKSPACE_ROOT, rel_path))
         removed += 1
     return removed
+
+
+def get_latest_deploy() -> dict[str, str] | None:
+    """Return URL and metadata from the newest deploy_report_*.md in workspace."""
+    reports = sorted(
+        path
+        for path in list_workspace_files()
+        if os.path.basename(path).startswith("deploy_report_")
+    )
+    if not reports:
+        return None
+
+    rel_path = reports[-1]
+    content = read_workspace_file(rel_path)
+    url_match = re.search(r'"url":\s*"(https://[^"]+)"', content)
+    status_match = re.search(r'"status":\s*"([^"]+)"', content)
+    link_match = re.search(r"\[(https://[^\]]+\.netlify\.app/?)\]", content)
+
+    url = ""
+    if url_match:
+        url = url_match.group(1)
+    elif link_match:
+        url = link_match.group(1)
+
+    return {
+        "report_path": rel_path,
+        "url": url,
+        "status": status_match.group(1) if status_match else "unknown",
+    }
 
 
 def read_agents_md() -> str:

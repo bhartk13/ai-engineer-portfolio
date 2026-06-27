@@ -3,18 +3,21 @@ import {
   BookOpen,
   FilePlus2,
   GitBranch,
+  Globe,
   ListTodo,
   Sparkles,
   Wrench,
 } from "lucide-react";
 import type { ActivityEvent, RunArtifacts, TimelineStep } from "../types";
 import { toDisplayString } from "../utils/format";
+import { DeployBanner } from "./DeployBanner";
 
 const STEP_META = {
   plan: { icon: ListTodo, color: "text-sky-300", bg: "bg-sky-500/15" },
   skill: { icon: Sparkles, color: "text-violet-300", bg: "bg-violet-500/15" },
   delegate: { icon: GitBranch, color: "text-amber-300", bg: "bg-amber-500/15" },
   tool: { icon: Wrench, color: "text-emerald-300", bg: "bg-emerald-500/15" },
+  deploy: { icon: Globe, color: "text-emerald-300", bg: "bg-emerald-500/15" },
   thought: { icon: BookOpen, color: "text-slate-400", bg: "bg-white/5" },
   error: { icon: AlertCircle, color: "text-rose-300", bg: "bg-rose-500/15" },
 };
@@ -49,11 +52,20 @@ function eventToStep(event: ActivityEvent): TimelineStep | null {
       const name = toDisplayString(event.name);
       const path = toDisplayString(event.args?.path ?? event.args?.file_path);
       const isWrite = ["write_file", "edit_file"].includes(name);
+      const isDeploy = name === "deploy_static_site";
       return {
         id: event.id,
         kind: "tool",
-        label: isWrite ? `Write: ${path || name}` : `Tool: ${name}`,
-        detail: isWrite ? "Artifact persisted to workspace" : undefined,
+        label: isDeploy
+          ? "Deploy: Netlify (auto)"
+          : isWrite
+            ? `Write: ${path || name}`
+            : `Tool: ${name}`,
+        detail: isDeploy
+          ? "Static site publish — no user prompt for platform"
+          : isWrite
+            ? "Artifact persisted to workspace"
+            : undefined,
         timestamp: event.timestamp,
       };
     }
@@ -63,6 +75,14 @@ function eventToStep(event: ActivityEvent): TimelineStep | null {
         kind: "error",
         label: "Error",
         detail: event.message,
+        timestamp: event.timestamp,
+      };
+    case "deploy":
+      return {
+        id: event.id,
+        kind: "deploy",
+        label: "Live deploy",
+        detail: event.url ?? "Static bundle built",
         timestamp: event.timestamp,
       };
     default:
@@ -75,12 +95,14 @@ export function OrchestrationTimeline({
   artifacts,
   isRunning,
   currentRunId,
+  deployUrl,
   onSelectFile,
 }: {
   events: ActivityEvent[];
   artifacts: RunArtifacts | null;
   isRunning: boolean;
   currentRunId: string | null;
+  deployUrl?: string;
   onSelectFile: (path: string) => void;
 }) {
   const steps = events
@@ -112,6 +134,10 @@ export function OrchestrationTimeline({
       </div>
 
       <div className="space-y-4 p-4">
+        {deployUrl && (
+          <DeployBanner url={deployUrl} compact />
+        )}
+
         {showArtifacts && (
           <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-3">
             <div className="mb-2 flex items-center gap-2 text-xs font-medium text-emerald-300">

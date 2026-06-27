@@ -16,7 +16,7 @@ This project demonstrates the **Deep Agent** pattern from LangChain: no hardcode
 |---------------|------------------------|
 | Fixed tools baked into code | Skills added as folders — zero code changes |
 | Single-thread reasoning | Planning + subagent delegation |
-| Context only in chat history | Persistent handoffs in `./workspace/` |
+| Context only in chat history | Persistent handoffs in `/workspace/` (project `workspace/` folder) |
 | Custom routing logic | LLM routes via skill **descriptions** |
 
 ## Architecture
@@ -30,7 +30,7 @@ flowchart TB
     Orchestrator --> Task[task tool]
     Task --> Subagent[general-purpose subagent]
     Subagent --> SkillMD
-    Subagent --> Workspace[(./workspace/)]
+    Subagent --> Workspace[(/workspace/ → ./workspace/)]
     Orchestrator --> Workspace
     AGENTS[AGENTS.md shared memory] -.-> Orchestrator
     AGENTS -.-> Subagent
@@ -41,7 +41,7 @@ flowchart TB
 1. **Planning** — `write_todos` decomposes complex goals.
 2. **Delegation** — `task` spawns isolated subagents with the same skill library.
 3. **Progressive disclosure** — Only skill `name` + `description` load at startup; full `SKILL.md` loads when needed.
-4. **Filesystem workspace** — Research, drafts, and reviews pass between agents as files.
+4. **Filesystem workspace** — Research, drafts, reviews, and deploy bundles pass between agents as files under `/workspace/` (mapped to `./workspace/` on disk).
 
 ## Project structure
 
@@ -58,8 +58,9 @@ deep-agents/
 ├── skills/
 │   ├── research/SKILL.md
 │   ├── writer/SKILL.md
-│   └── code-reviewer/SKILL.md
-├── workspace/                # Agent artifacts (research, drafts, reviews)
+│   ├── code-reviewer/SKILL.md
+│   └── static-deploy/SKILL.md
+├── workspace/                # Agent artifacts (drafts, sites/, deploy_report_*.md)
 ├── runs/                     # Orchestration run history (auto-saved)
 ├── pyproject.toml
 ├── requirements.txt
@@ -111,9 +112,12 @@ Open `http://localhost:5173`.
 The UI includes:
 - **Chat panel** with markdown rendering and suggested prompts
 - **Orchestration pipeline** — plan → skills → subagents → workspace (with artifact diff)
-- **Live activity feed** — thoughts, tool calls, skill loads, delegations
+- **Live activity feed** — thoughts, tool calls, skill loads, delegations, deploy events
+- **Live site banner** — persistent Netlify URL from the latest `deploy_report_*.md`
 - **Run history** — every chat saved under `./runs/{id}/` (replayable from sidebar)
+- **Resizable sidebar** — drag the right edge on desktop to widen the Files tab
 - **Sidebar tabs** — skills catalog, plan, workspace files, run history, AGENTS.md memory
+- **Files tab** — auto-refreshes when agents write or deploy; full filenames wrap (no truncation)
 
 ### Run (Streamlit UI — legacy)
 
@@ -147,12 +151,17 @@ Review agent.py for production readiness and save findings to the workspace.
 Research current trends in agentic AI, write an executive summary, then review the draft for clarity.
 ```
 
+```
+Research multi-agent orchestration trends, draft a blog post, save it to the workspace, and deploy to a free cloud page.
+```
+
 Watch the UI for:
 
 - **Skills tab** — metadata from each `SKILL.md`
 - **Plan tab** — todos from `write_todos`
-- **Files tab** — artifacts agents write for each other
-- **Live activity** — real-time orchestration timeline
+- **Files tab** — artifacts agents write for each other (`draft_*.md`, `sites/`, `deploy_report_*.md`)
+- **Live activity** — real-time orchestration timeline (including deploy URL when live)
+- **Green banner** — click-through link to the latest Netlify deploy
 
 ## How skill routing works
 
@@ -163,9 +172,59 @@ Available skills:
 - research: "Conducts comprehensive web research..."
 - writer: "Writes high-quality blog posts..."
 - code-reviewer: "Reviews code for bugs..."
+- static-deploy: "Deploys to Netlify without asking..."
 ```
 
 The model reads the user message, picks a skill, and calls `read_file("skills/research/SKILL.md")`. Well-written `description` fields (with trigger phrases and "Do NOT use for…" boundaries) are the routing engine.
+
+## Workspace paths
+
+Agents read and write artifacts using **virtual paths** like `/workspace/draft_topic.md`. The orchestrator uses `FilesystemBackend(root_dir=".", virtual_mode=True)` so those paths resolve to the project `./workspace/` folder — not the filesystem root `/workspace/`.
+
+Predictable filenames (see `AGENTS.md`):
+
+| Path | Purpose |
+|------|---------|
+| `/workspace/research_<topic>.md` | Research notes |
+| `/workspace/draft_<topic>.md` | Blog drafts |
+| `/workspace/review_<target>.md` | Review output |
+| `/workspace/sites/<slug>/index.html` | Static site bundle |
+| `/workspace/deploy_report_<slug>.md` | Deploy log + live URL |
+
+## Autonomous deployment (no human-in-the-loop)
+
+For prompts like *"research, write, and deploy to a free cloud page"*:
+
+1. Agents **must not ask** which platform to use — default is **Netlify** (`static-deploy` skill).
+2. The `deploy_static_site` tool converts markdown → HTML, saves under `workspace/sites/<slug>/`, and publishes to Netlify when configured.
+3. **Conversation threads** (`thread_id`) keep follow-ups in the same task instead of starting over.
+4. Deploy bundles include a Netlify `_headers` file so `index.html` is served as `text/html` (not plain text).
+
+```
+Research → write draft → deploy_static_site → live URL
+```
+
+### Netlify setup
+
+1. Create a free account at [app.netlify.com](https://app.netlify.com).
+2. Generate a **Personal Access Token**: [User settings → Applications → Personal access tokens](https://app.netlify.com/user/applications#personal-access-tokens).
+3. Add to `.env`:
+
+```env
+NETLIFY_AUTH_TOKEN=nfp_xxxxxxxx
+NETLIFY_SITE_ID=your-site-id   # optional — reuse same site on redeploy
+DEPLOY_PLATFORM=netlify
+```
+
+Without `NETLIFY_AUTH_TOKEN`, the static bundle and `deploy_report_*.md` are still created locally; only the live publish is skipped.
+
+After a successful deploy, find the URL in:
+
+- The **green Live site banner** at the top of the UI
+- The **Orchestration pipeline** / activity feed (deploy event)
+- `workspace/deploy_report_<slug>.md` under **Files**
+
+Redeploy after code changes: restart the server, then prompt e.g. *"Deploy `/workspace/draft_<topic>.md` to Netlify"* — set `NETLIFY_SITE_ID` to update the same site instead of creating a new one.
 
 ## Adding a new skill
 
@@ -185,8 +244,11 @@ See [agentskills.io](https://agentskills.io) for the full specification.
 | `TAVILY_API_KEY` | For research | Web search tool |
 | `WORKSPACE_ROOT` | No | Default `./workspace` |
 | `RUNS_ROOT` | No | Default `./runs` (orchestration history) |
-| `ANTHROPIC_MODEL` | No | Default `claude-3-5-sonnet-20240620` |
-| `OPENAI_MODEL` | No | Default `gpt-4o` |
+| `DEPLOY_PLATFORM` | No | Default `netlify` |
+| `NETLIFY_AUTH_TOKEN` | For live deploy | Netlify personal access token ([how to create](https://app.netlify.com/user/applications#personal-access-tokens)) |
+| `NETLIFY_SITE_ID` | No | Reuse existing Netlify site on redeploy (recommended) |
+| `ANTHROPIC_MODEL` | No | Default `claude-sonnet-4-20250514` |
+| `OPENAI_MODEL` | No | Default `gpt-4o-mini` (recommended for rate limits) |
 
 ## Key dependencies
 

@@ -1,4 +1,4 @@
-import type { RunDetail, RunSummary, Skill, StreamEvent, WorkspaceFile } from "./types";
+import type { DeployInfo, RunDetail, RunSummary, Skill, StreamEvent, WorkspaceFile } from "./types";
 
 const API = "/api";
 
@@ -34,6 +34,16 @@ export async function clearWorkspace(): Promise<void> {
   await fetch(`${API}/workspace`, { method: "DELETE" });
 }
 
+export async function fetchLatestDeploy(): Promise<DeployInfo> {
+  const res = await fetch(`${API}/deploy/latest`);
+  const data = await res.json();
+  return {
+    url: data.url ?? "",
+    status: data.status ?? "none",
+    report_path: data.report_path ?? "",
+  };
+}
+
 export async function fetchRuns(limit = 20): Promise<RunSummary[]> {
   const res = await fetch(`${API}/runs?limit=${limit}`);
   const data = await res.json();
@@ -49,18 +59,21 @@ export async function fetchRun(runId: string): Promise<RunDetail> {
 export async function streamChat(
   prompt: string,
   onEvent: (event: StreamEvent) => void,
-  signal?: AbortSignal
-): Promise<void> {
+  signal?: AbortSignal,
+  threadId?: string | null
+): Promise<string> {
   const res = await fetch(`${API}/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify({ prompt, thread_id: threadId ?? undefined }),
     signal,
   });
 
   if (!res.ok || !res.body) {
     throw new Error(`Chat request failed (${res.status})`);
   }
+
+  let resolvedThreadId = threadId ?? null;
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
@@ -77,10 +90,16 @@ export async function streamChat(
     for (const line of lines) {
       if (!line.startsWith("data: ")) continue;
       try {
-        onEvent(JSON.parse(line.slice(6)) as StreamEvent);
+        const event = JSON.parse(line.slice(6)) as StreamEvent;
+        if (event.type === "run_start" && event.thread_id) {
+          resolvedThreadId = event.thread_id;
+        }
+        onEvent(event);
       } catch {
         // ignore malformed chunks
       }
     }
   }
+
+  return resolvedThreadId ?? "";
 }

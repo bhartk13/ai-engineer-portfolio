@@ -2,6 +2,7 @@ import {
   AlertCircle,
   BookOpen,
   GitBranch,
+  Globe,
   ListTodo,
   Loader2,
   Wrench,
@@ -16,6 +17,7 @@ const ICONS = {
   skill_load: Loader2,
   plan: ListTodo,
   error: AlertCircle,
+  deploy: Globe,
 };
 
 const LABELS = {
@@ -25,6 +27,7 @@ const LABELS = {
   skill_load: "Skill loaded",
   plan: "Plan updated",
   error: "Error",
+  deploy: "Deployed",
 };
 
 export function ActivityFeed({
@@ -137,6 +140,23 @@ function ActivityBody({ event }: { event: ActivityEvent }) {
       );
     case "error":
       return <p className="text-sm text-rose-300">{toDisplayString(event.message)}</p>;
+    case "deploy":
+      return (
+        <div className="space-y-2 text-sm">
+          {event.url ? (
+            <a
+              href={event.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block break-all font-mono text-emerald-300 underline underline-offset-2 hover:text-emerald-200"
+            >
+              {event.url}
+            </a>
+          ) : (
+            <p className="text-slate-400">Static bundle built (no live URL yet).</p>
+          )}
+        </div>
+      );
     default:
       return null;
   }

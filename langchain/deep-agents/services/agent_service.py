@@ -28,6 +28,7 @@ RECORDABLE_TYPES = {
     "skill_load",
     "plan",
     "error",
+    "deploy",
 }
 
 
@@ -69,6 +70,21 @@ def normalize_content(content: Any) -> str:
                 parts.append(str(block))
         return "\n".join(part for part in parts if part)
     return str(content)
+
+
+def _extract_deploy_url(text: str) -> str | None:
+    match = re.search(r"https://[^\s\]>\"']+\.netlify\.app/?", text)
+    if match:
+        return match.group(0).rstrip(".,)")
+    match = re.search(r"Live URL:\s*(https://\S+)", text)
+    if match:
+        return match.group(1).rstrip(".,)")
+    return None
+
+
+def _message_kind(msg) -> str | None:
+    kind = getattr(msg, "type", None) or getattr(msg, "role", None)
+    return str(kind) if kind else None
 
 
 def parse_tool_call(tool_call: Any) -> tuple[str | None, dict[str, Any]]:
@@ -145,13 +161,14 @@ def _record_event(run_id: str | None, payload: dict[str, Any]) -> None:
         append_activity(run_id, payload)
 
 
-def _run_agent_stream(prompt: str, emit):
+def _run_agent_stream(prompt: str, emit, config: dict[str, Any]):
     """Run one agent stream pass. Returns the final assistant text."""
     agent = get_agent()
     final_response = ""
 
     for event in agent.stream(
         {"messages": [("user", prompt)]},
+        config=config,
         stream_mode="updates",
     ):
         for node_name, data in event.items():
@@ -166,6 +183,19 @@ def _run_agent_stream(prompt: str, emit):
 
             for msg in normalize_messages(data["messages"]):
                 content = normalize_content(getattr(msg, "content", None))
+                tool_name = getattr(msg, "name", None)
+
+                if _message_kind(msg) == "tool" and tool_name == "deploy_static_site" and content:
+                    url = _extract_deploy_url(content)
+                    yield emit(
+                        {
+                            "type": "deploy",
+                            "url": url,
+                            "status": "live" if url else "built",
+                            "message": content,
+                        }
+                    )
+
                 if content:
                     if node_name == "agent":
                         yield emit({"type": "thought", "content": content})
@@ -209,17 +239,31 @@ def _run_agent_stream(prompt: str, emit):
     return final_response
 
 
-def stream_agent_events(prompt: str) -> Generator[str, None, None]:
+def stream_agent_events(
+    prompt: str,
+    thread_id: str | None = None,
+) -> Generator[str, None, None]:
     """Yield Server-Sent Events (JSON payloads) while the agent runs."""
+    from uuid import uuid4
+
+    thread_id = thread_id or uuid4().hex[:16]
     run = create_run(prompt)
     run_id = run["id"]
     workspace_before = snapshot_workspace()
     started_mono = time.time()
+    agent_config = {"configurable": {"thread_id": thread_id}}
 
     def emit(payload: dict[str, Any]) -> str:
         return f"data: {json.dumps(payload, default=str)}\n\n"
 
-    yield emit({"type": "run_start", "run_id": run_id, "prompt": prompt})
+    yield emit(
+        {
+            "type": "run_start",
+            "run_id": run_id,
+            "thread_id": thread_id,
+            "prompt": prompt,
+        }
+    )
 
     last_exc: Exception | None = None
     final_response = ""
@@ -227,7 +271,7 @@ def stream_agent_events(prompt: str) -> Generator[str, None, None]:
 
     for attempt in range(MAX_RATE_LIMIT_RETRIES):
         try:
-            stream = _run_agent_stream(prompt, emit)
+            stream = _run_agent_stream(prompt, emit, agent_config)
             while True:
                 try:
                     chunk = next(stream)

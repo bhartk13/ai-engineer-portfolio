@@ -16,12 +16,12 @@ Turn research artifacts or bullet notes into clear, audience-appropriate markdow
 
 ## Instructions
 
-1. Read input files from `./workspace/` (research notes, outlines, user-provided paths).
+1. Read input files from `/workspace/` (research notes, outlines, user-provided paths).
 2. Define an outline: title, introduction, 2–4 body sections, conclusion.
 3. Match tone to audience (technical blog, executive brief, tutorial).
 4. Ground claims in provided sources — do not invent statistics.
 5. Use GitHub Flavored Markdown (headings, lists, blockquotes where useful).
-6. Save to `./workspace/draft_<short_topic>.md`.
+6. Save to `/workspace/draft_<short_topic>.md` (required — do not use `blogs/` or other dirs).
 
 ## Handoff
 

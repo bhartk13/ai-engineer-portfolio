@@ -17,7 +17,8 @@ export type ActivityType =
   | "delegation"
   | "skill_load"
   | "plan"
-  | "error";
+  | "error"
+  | "deploy";
 
 export interface ActivityEvent {
   id: string;
@@ -31,6 +32,8 @@ export interface ActivityEvent {
   skill?: string;
   todos?: string[];
   message?: string;
+  url?: string;
+  deployStatus?: string;
 }
 
 export interface WorkspaceFile {
@@ -68,21 +71,28 @@ export interface RunDetail {
   response: string;
 }
 
+export interface DeployInfo {
+  url: string;
+  status: string;
+  report_path: string;
+}
+
 export type StreamEvent =
-  | { type: "run_start"; run_id: string; prompt: string }
+  | { type: "run_start"; run_id: string; thread_id: string; prompt: string }
   | { type: "run_complete"; run_id: string; status: string; duration_ms: number; artifacts: RunArtifacts; stats: RunStats }
   | { type: "thought"; content: string }
   | { type: "tool"; name: string; args: Record<string, unknown> }
   | { type: "delegation"; subagent: string; description: string }
   | { type: "skill_load"; skill: string }
   | { type: "plan"; todos: string[] }
+  | { type: "deploy"; url: string | null; status: string; message: string }
   | { type: "message"; content: string }
   | { type: "error"; message: string; trace?: string }
   | { type: "done" };
 
 export interface TimelineStep {
   id: string;
-  kind: "plan" | "skill" | "delegate" | "tool" | "thought" | "error";
+  kind: "plan" | "skill" | "delegate" | "tool" | "deploy" | "thought" | "error";
   label: string;
   detail?: string;
   timestamp: number;

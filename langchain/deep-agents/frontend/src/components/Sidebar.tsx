@@ -19,6 +19,7 @@ import { RunHistoryPanel } from "./RunHistoryPanel";
 type SidebarTab = "skills" | "memory" | "workspace" | "plan" | "runs";
 
 export function Sidebar({
+  width,
   skills,
   agentsMd,
   plan,
@@ -34,6 +35,7 @@ export function Sidebar({
   onSelectRun,
   onRefreshRuns,
 }: {
+  width?: number;
   skills: Skill[];
   agentsMd: string;
   plan: string[];
@@ -60,7 +62,10 @@ export function Sidebar({
   ];
 
   return (
-    <aside className="flex min-h-0 w-full flex-col rounded-3xl border border-white/5 bg-surface-900/70 shadow-2xl shadow-black/20 lg:w-[340px]">
+    <aside
+      className="flex min-h-0 w-full flex-col rounded-3xl border border-white/5 bg-surface-900/70 shadow-2xl shadow-black/20"
+      style={width ? { width } : undefined}
+    >
       <div className="grid grid-cols-5 gap-1 border-b border-white/5 p-2">
         {tabs.map(({ id, label, icon: Icon }) => (
           <button
@@ -167,23 +172,29 @@ export function Sidebar({
                     <button
                       key={path}
                       type="button"
+                      title={path}
                       onClick={() => onSelectFile(path)}
-                      className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm transition ${
+                      className={`flex w-full items-start gap-2 rounded-xl px-3 py-2 text-left text-sm transition ${
                         selectedFile === path
                           ? "bg-emerald-500/15 text-emerald-200"
                           : "text-slate-300 hover:bg-white/5"
                       }`}
                     >
-                      <FileCode2 className="h-4 w-4 shrink-0" />
-                      <span className="truncate font-mono text-xs">{path}</span>
+                      <FileCode2 className="mt-0.5 h-4 w-4 shrink-0" />
+                      <span className="min-w-0 break-all font-mono text-xs leading-relaxed">
+                        {path}
+                      </span>
                     </button>
                   ))}
                 </div>
 
                 {selectedFile && fileContent && (
                   <div className="rounded-2xl border border-white/5 bg-black/20 p-3">
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="truncate font-mono text-xs text-emerald-300">
+                    <div className="mb-2 flex items-start justify-between gap-2">
+                      <span
+                        className="min-w-0 break-all font-mono text-xs leading-relaxed text-emerald-300"
+                        title={selectedFile}
+                      >
                         {selectedFile}
                       </span>
                       <a

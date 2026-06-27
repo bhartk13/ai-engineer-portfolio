@@ -6,3 +6,5 @@ tavily-python>=0.7.23
 fastapi>=0.115.0
 uvicorn[standard]>=0.34.0
 streamlit>=1.55.0
+markdown>=3.7
+requests>=2.32.0
