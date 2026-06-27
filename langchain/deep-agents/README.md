@@ -10,8 +10,6 @@
 
 This project demonstrates the **Deep Agent** pattern from LangChain: no hardcoded specialist chains, no custom routers. The LLM discovers capabilities at runtime, loads skill playbooks on demand, and spawns subagents for multi-step work.
 
-Based on [Building Deep Agents + SKILL.md with Langchain](https://abvijaykumar.medium.com/building-deep-agents-skill-md-with-langchain-074176c66dec) by A B Vijay Kumar. Reference implementation: [abvijaykumar/deep-agents-langchain-blog](https://github.com/abvijaykumar/deep-agents-langchain-blog).
-
 ## Why this pattern?
 
 | Shallow agent | Deep agent (this repo) |
@@ -210,5 +208,4 @@ MIT — see [LICENSE](LICENSE).
 
 ## Acknowledgments
 
-- [A B Vijay Kumar](https://abvijaykumar.medium.com/) — Deep Agents + SKILL.md series
 - [LangChain / deepagents](https://github.com/langchain-ai/deepagents) — agent harness
