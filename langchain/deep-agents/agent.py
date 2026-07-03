@@ -8,18 +8,11 @@ from typing import Literal
 from deepagents import create_deep_agent
 from deepagents.backends import FilesystemBackend
 from dotenv import load_dotenv
-from langchain_anthropic import ChatAnthropic
-from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 from tavily import TavilyClient
 
-from config import (
-    DEFAULT_ANTHROPIC_MODEL,
-    DEFAULT_OPENAI_MODEL,
-    MEMORY_FILES,
-    SKILLS_ROOT,
-    WORKSPACE_ROOT,
-)
+from config import MEMORY_FILES, SKILLS_ROOT, WORKSPACE_ROOT
+from services.llm_failover import build_chat_model, get_failover_chain
 from services.static_deploy import deploy_static_site
 
 load_dotenv()
@@ -74,6 +67,9 @@ Specialized workflows live in SKILL.md files under `skills/`. Load them on deman
 - NEVER use `/tmp/` for persistence.
 - Load a skill before executing its workflow.
 - Prefer subagents when a sub-task would clutter the main thread.
+- **Code in `/workspace/`:** read before write; never duplicate functions or `if __name__`
+  blocks; use `code-generator` skill for new scripts; fix failed edits by overwriting the
+  whole file, not appending a second copy.
 """
 
 
@@ -82,54 +78,19 @@ def _ensure_directories() -> None:
     os.makedirs(SKILLS_ROOT, exist_ok=True)
 
 
-def _build_model():
-    provider = os.getenv("LLM_PROVIDER", "auto").lower()
-    anthropic_key = os.getenv("ANTHROPIC_API_KEY")
-    openai_key = os.getenv("OPENAI_API_KEY")
-
-    def openai_model():
-        if not openai_key:
-            raise ValueError("OPENAI_API_KEY is not set.")
-        return ChatOpenAI(
-            model=os.getenv("OPENAI_MODEL", DEFAULT_OPENAI_MODEL),
-            temperature=0,
-            max_retries=int(os.getenv("OPENAI_MAX_RETRIES", "3")),
-        )
-
-    def anthropic_model():
-        if not anthropic_key:
-            raise ValueError("ANTHROPIC_API_KEY is not set.")
-        return ChatAnthropic(
-            model=os.getenv("ANTHROPIC_MODEL", DEFAULT_ANTHROPIC_MODEL),
-            temperature=0,
-            max_retries=int(os.getenv("ANTHROPIC_MAX_RETRIES", "3")),
-        )
-
-    if provider == "openai":
-        return openai_model()
-    if provider == "anthropic":
-        return anthropic_model()
-
-    if anthropic_key and not openai_key:
-        return anthropic_model()
-    if openai_key and not anthropic_key:
-        return openai_model()
-    if openai_key:
-        return openai_model()
-    if anthropic_key:
-        return anthropic_model()
-
-    raise ValueError(
-        "Set ANTHROPIC_API_KEY or OPENAI_API_KEY in .env before running the agent."
-    )
+def get_active_model_spec(failover_index: int = 0):
+    chain = get_failover_chain()
+    index = min(max(failover_index, 0), len(chain) - 1)
+    return chain[index]
 
 
-def get_deep_agent():
+def get_deep_agent(failover_index: int = 0):
     """Create a generic Deep Agent that discovers skills at runtime."""
     _ensure_directories()
+    spec = get_active_model_spec(failover_index)
 
     return create_deep_agent(
-        model=_build_model(),
+        model=build_chat_model(spec),
         system_prompt=ORCHESTRATOR_PROMPT,
         tools=[internet_search, deploy_static_site],
         skills=[SKILLS_ROOT],

@@ -12,7 +12,9 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from config import RUNS_ROOT, WORKSPACE_ROOT
-from services.agent_service import stream_agent_events
+from agent import get_active_model_spec
+from services.agent_service import get_failover_index, stream_agent_events
+from services.llm_failover import get_failover_chain
 from services.project_data import (
     clear_workspace,
     get_latest_deploy,
@@ -45,17 +47,20 @@ class ChatRequest(BaseModel):
 
 @app.get("/api/health")
 def health():
-    provider = os.getenv("LLM_PROVIDER", "auto")
-    model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-    if provider == "anthropic" or (
-        provider == "auto"
-        and os.getenv("ANTHROPIC_API_KEY")
-        and not os.getenv("OPENAI_API_KEY")
-    ):
-        model = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-20250514")
-    elif provider != "anthropic" and os.getenv("OPENAI_API_KEY"):
-        model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-    return {"status": "ok", "llm_provider": provider, "model": model}
+    try:
+        chain = get_failover_chain()
+    except ValueError as exc:
+        return {"status": "error", "message": str(exc)}
+
+    active = get_active_model_spec(get_failover_index())
+    return {
+        "status": "ok",
+        "llm_provider": active.provider,
+        "model": active.model,
+        "active_model": active.label(),
+        "failover_enabled": os.getenv("LLM_FAILOVER", "true").lower() in {"1", "true", "yes"},
+        "failover_chain": [spec.label() for spec in chain],
+    }
 
 
 @app.get("/api/skills")

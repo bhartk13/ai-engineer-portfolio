@@ -1,6 +1,7 @@
 deepagents>=0.4.12
 langchain-anthropic>=1.4.0
 langchain-openai>=1.1.12
+langchain-google-genai>=4.2.0
 python-dotenv>=1.2.2
 tavily-python>=0.7.23
 fastapi>=0.115.0

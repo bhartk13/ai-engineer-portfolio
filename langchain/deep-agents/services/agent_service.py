@@ -10,7 +10,8 @@ import traceback
 from collections.abc import Generator
 from typing import Any
 
-from agent import get_deep_agent
+from agent import get_active_model_spec, get_deep_agent
+from services.llm_failover import get_failover_chain
 from services.run_history import (
     append_activity,
     create_run,
@@ -19,7 +20,13 @@ from services.run_history import (
 )
 
 _agent = None
-MAX_RATE_LIMIT_RETRIES = int(os.getenv("RATE_LIMIT_MAX_RETRIES", "3"))
+_failover_index = 0
+MAX_RATE_LIMIT_RETRIES = int(os.getenv("RATE_LIMIT_MAX_RETRIES", "2"))
+LLM_FAILOVER_ENABLED = os.getenv("LLM_FAILOVER", "true").lower() in {
+    "1",
+    "true",
+    "yes",
+}
 
 RECORDABLE_TYPES = {
     "thought",
@@ -35,12 +42,38 @@ RECORDABLE_TYPES = {
 def get_agent():
     global _agent
     if _agent is None:
-        _agent = get_deep_agent()
+        _agent = get_deep_agent(_failover_index)
     return _agent
 
 
 def reset_agent() -> None:
     global _agent
+    _agent = None
+
+
+def get_failover_index() -> int:
+    return _failover_index
+
+
+def advance_failover_model() -> str | None:
+    """Switch to the next model in the failover chain. Returns new model label or None."""
+    global _failover_index, _agent
+    if not LLM_FAILOVER_ENABLED:
+        return None
+
+    chain = get_failover_chain()
+    if _failover_index + 1 >= len(chain):
+        return None
+
+    _failover_index += 1
+    _agent = None
+    return get_active_model_spec(_failover_index).label()
+
+
+def reset_failover_state() -> None:
+    """Reset to primary model at the start of each chat run."""
+    global _failover_index, _agent
+    _failover_index = 0
     _agent = None
 
 
@@ -114,9 +147,47 @@ def _serialize_todos(todos: Any) -> list[str]:
     return result
 
 
-def _is_rate_limit_error(exc: Exception) -> bool:
+def _is_insufficient_quota_error(exc: Exception) -> bool:
+    """OpenAI account has no billing credits left (not TPM rate limit)."""
     message = str(exc).lower()
-    return "429" in message or "rate limit" in message or "rate_limit" in message
+    return "insufficient_quota" in message or (
+        "exceeded your current quota" in message
+        and "rate_limit" not in message
+        and "tokens per min" not in message
+    )
+
+
+def _is_rate_limit_error(exc: Exception) -> bool:
+    if _is_insufficient_quota_error(exc):
+        return False
+    message = str(exc).lower()
+    return (
+        "429" in message
+        or "rate limit" in message
+        or "rate_limit" in message
+        or "rate_limit_exceeded" in message
+        or "resource_exhausted" in message
+        or "quota exceeded" in message
+    )
+
+
+def _is_model_unavailable_error(exc: Exception) -> bool:
+    message = str(exc).lower()
+    return (
+        "404" in message
+        or "not_found_error" in message
+        or "model not found" in message
+        or "does not exist" in message
+        or "invalid model" in message
+    )
+
+
+def _should_failover(exc: Exception) -> bool:
+    return (
+        _is_rate_limit_error(exc)
+        or _is_insufficient_quota_error(exc)
+        or _is_model_unavailable_error(exc)
+    )
 
 
 def _retry_after_seconds(exc: Exception) -> float:
@@ -128,13 +199,48 @@ def _retry_after_seconds(exc: Exception) -> float:
 
 def _format_user_error(exc: Exception) -> str:
     message = str(exc)
-    if _is_rate_limit_error(exc):
+    if _is_model_unavailable_error(exc):
         return (
-            "**OpenAI rate limit reached** (tokens per minute).\n\n"
-            "Deep agents make many LLM calls (planning, tools, subagents), so they "
-            "burn through TPM quickly on `gpt-4o`.\n\n"
-            "**Fix:** set `OPENAI_MODEL=gpt-4o-mini` in `.env`, wait ~60 seconds, "
+            "**Model not available** with your API key.\n\n"
+            "The failover chain tried an invalid or unsupported model id. "
+            "Update `ANTHROPIC_MODEL` in `.env` or remove it to use auto-discovery "
+            "(the app lists models from your Anthropic account at runtime). "
             "then restart the server.\n\n"
+            f"Details: {message}"
+        )
+    if _is_insufficient_quota_error(exc):
+        chain = get_failover_chain()
+        failover_hint = ""
+        if LLM_FAILOVER_ENABLED and len(chain) > 1:
+            failover_hint = (
+                "\n\n**Failover:** the app should switch to Anthropic automatically. "
+                "If you still see this, set `LLM_PROVIDER=anthropic` in `.env` to skip "
+                "OpenAI entirely, then restart the server."
+            )
+        return (
+            "**OpenAI billing quota exhausted** — this is not a rate limit.\n\n"
+            "Your OpenAI account has no remaining credits. You already use "
+            "`gpt-4o-mini`; changing `OPENAI_MODEL` will not fix this.\n\n"
+            "**Fix:** add credits at [platform.openai.com/billing](https://platform.openai.com/billing), "
+            "or use Anthropic as primary (`LLM_PROVIDER=anthropic` in `.env`)."
+            f"{failover_hint}\n\n"
+            f"Details: {message}"
+        )
+    if _is_rate_limit_error(exc):
+        chain = get_failover_chain()
+        failover_hint = ""
+        if LLM_FAILOVER_ENABLED and len(chain) > 1:
+            failover_hint = (
+                "\n\n**Failover:** the app already tries alternate models on 429. "
+                "Add `GOOGLE_API_KEY` (free Gemini tier at ai.google.dev) for an extra "
+                "fallback, or set `LLM_FAILOVER_MODELS` in `.env`."
+            )
+        return (
+            "**Rate limit reached** on all configured models (tokens per minute).\n\n"
+            "Deep agents make many LLM calls (planning, tools, subagents).\n\n"
+            "**Tips:** use `OPENAI_MODEL=gpt-4o-mini`, add `GOOGLE_API_KEY` for Gemini "
+            "failover, wait ~60s, then retry."
+            f"{failover_hint}\n\n"
             f"Details: {message}"
         )
     return (
@@ -247,6 +353,7 @@ def stream_agent_events(
     from uuid import uuid4
 
     thread_id = thread_id or uuid4().hex[:16]
+    reset_failover_state()
     run = create_run(prompt)
     run_id = run["id"]
     workspace_before = snapshot_workspace()
@@ -262,14 +369,16 @@ def stream_agent_events(
             "run_id": run_id,
             "thread_id": thread_id,
             "prompt": prompt,
+            "model": get_active_model_spec(_failover_index).label(),
         }
     )
 
     last_exc: Exception | None = None
     final_response = ""
     status = "completed"
+    wait_retries = 0
 
-    for attempt in range(MAX_RATE_LIMIT_RETRIES):
+    while True:
         try:
             stream = _run_agent_stream(prompt, emit, agent_config)
             while True:
@@ -292,19 +401,41 @@ def stream_agent_events(
             break
         except Exception as exc:
             last_exc = exc
-            if _is_rate_limit_error(exc) and attempt < MAX_RATE_LIMIT_RETRIES - 1:
-                wait = _retry_after_seconds(exc)
-                retry_payload = {
-                    "type": "thought",
-                    "content": (
-                        f"Rate limit hit — waiting {wait:.0f}s before retry "
-                        f"({attempt + 1}/{MAX_RATE_LIMIT_RETRIES})..."
-                    ),
-                }
-                _record_event(run_id, retry_payload)
-                yield emit(retry_payload)
-                time.sleep(wait)
-                continue
+            if _should_failover(exc):
+                next_model = advance_failover_model()
+                if next_model:
+                    if _is_model_unavailable_error(exc):
+                        reason = "Model not found"
+                    elif _is_insufficient_quota_error(exc):
+                        reason = "OpenAI quota exhausted"
+                    else:
+                        reason = "Rate limit"
+                    switch_payload = {
+                        "type": "thought",
+                        "content": (
+                            f"{reason} on previous model — failing over to **{next_model}**..."
+                        ),
+                    }
+                    _record_event(run_id, switch_payload)
+                    yield emit(switch_payload)
+                    wait_retries = 0
+                    continue
+
+                if wait_retries < MAX_RATE_LIMIT_RETRIES and _is_rate_limit_error(exc):
+                    wait = _retry_after_seconds(exc)
+                    retry_payload = {
+                        "type": "thought",
+                        "content": (
+                            f"Rate limit hit — waiting {wait:.0f}s before retry "
+                            f"({wait_retries + 1}/{MAX_RATE_LIMIT_RETRIES})..."
+                        ),
+                    }
+                    _record_event(run_id, retry_payload)
+                    yield emit(retry_payload)
+                    time.sleep(wait)
+                    wait_retries += 1
+                    continue
+
             status = "failed"
             break
 

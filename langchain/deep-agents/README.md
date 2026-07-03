@@ -58,6 +58,7 @@ deep-agents/
 ├── skills/
 │   ├── research/SKILL.md
 │   ├── writer/SKILL.md
+│   ├── code-generator/SKILL.md
 │   ├── code-reviewer/SKILL.md
 │   └── static-deploy/SKILL.md
 ├── workspace/                # Agent artifacts (drafts, sites/, deploy_report_*.md)
@@ -171,6 +172,7 @@ There is **no classifier**. `create_deep_agent(skills=["./skills"])` injects a c
 Available skills:
 - research: "Conducts comprehensive web research..."
 - writer: "Writes high-quality blog posts..."
+- code-generator: "Writes new Python scripts in workspace without duplication..."
 - code-reviewer: "Reviews code for bugs..."
 - static-deploy: "Deploys to Netlify without asking..."
 ```
@@ -247,8 +249,47 @@ See [agentskills.io](https://agentskills.io) for the full specification.
 | `DEPLOY_PLATFORM` | No | Default `netlify` |
 | `NETLIFY_AUTH_TOKEN` | For live deploy | Netlify personal access token ([how to create](https://app.netlify.com/user/applications#personal-access-tokens)) |
 | `NETLIFY_SITE_ID` | No | Reuse existing Netlify site on redeploy (recommended) |
-| `ANTHROPIC_MODEL` | No | Default `claude-sonnet-4-20250514` |
+| `ANTHROPIC_MODEL` | No | Default `claude-haiku-4-5-20251001` (auto-discovered from your account) |
 | `OPENAI_MODEL` | No | Default `gpt-4o-mini` (recommended for rate limits) |
+| `GOOGLE_API_KEY` | For free failover | Gemini free tier ([AI Studio key](https://aistudio.google.com/apikey)) |
+| `GOOGLE_MODEL` | No | Default `gemini-2.0-flash` |
+| `LLM_FAILOVER` | No | Auto-switch models on 429 (default `true`) |
+| `LLM_FAILOVER_MODELS` | No | Custom chain, e.g. `openai:gpt-4o-mini,google:gemini-2.0-flash,anthropic:...` |
+
+## Rate limits and model failover
+
+Deep agents make **many** LLM calls (planning, tools, subagents), so OpenAI TPM limits are easy to hit.
+
+On **429 / rate limit**, the app automatically:
+
+1. Switches to the **next model** in the failover chain (shown in live activity)
+2. Waits and retries if no alternate model is left
+
+**Default chain** (when `LLM_FAILOVER=true`):
+
+1. Your primary OpenAI model
+2. **Anthropic** — auto-discovered from your account via the Models API (Haiku first, then Sonnet)
+3. **Google Gemini** — if `GOOGLE_API_KEY` is set (last; free tier quotas vary)
+
+If Gemini shows `RESOURCE_EXHAUSTED` / `limit: 0`, disable it in failover:
+
+```env
+LLM_FAILOVER_INCLUDE_GOOGLE=false
+```
+
+Or remove/comment out `GOOGLE_API_KEY` in `.env`.
+
+Check active chain: `GET /api/health` → `failover_chain`.
+
+**Recommended for heavy reasoning tasks:**
+
+```env
+OPENAI_MODEL=gpt-4o-mini
+GOOGLE_API_KEY=your_gemini_key
+LLM_FAILOVER=true
+```
+
+Restart the server after changing `.env`.
 
 ## Key dependencies
 

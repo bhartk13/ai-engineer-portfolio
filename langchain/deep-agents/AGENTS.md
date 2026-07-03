@@ -16,6 +16,7 @@ disclosure — agents see skill metadata first, full instructions only when rele
 | **Orchestrator** | Plans with `write_todos`, routes tasks, delegates | (none — generic) |
 | **Researcher** | Web search, synthesis, structured notes | `research` |
 | **Writer** | Outlines and drafts from research artifacts | `writer` |
+| **Coder** | New scripts and utilities in workspace | `code-generator` |
 | **Reviewer** | Code/content review with structured feedback | `code-reviewer` |
 | **Publisher** | Static site build + free cloud deploy (Netlify default) | `static-deploy` |
 
@@ -40,9 +41,21 @@ Subagents spawned via the `task` tool use the `general-purpose` type. They share
   - `/workspace/review_<target>.md` — review output
   - `/workspace/sites/<slug>/index.html` — static site bundle
   - `/workspace/deploy_report_<slug>.md` — deploy log + URL
+  - `/workspace/<name>.py` — generated scripts and utilities
 - Do **not** write to `blogs/`, `/tmp/`, or other paths outside `/workspace/`.
 - Orchestrator delegates heavy sub-tasks to subagents to keep the main thread focused.
 - Before specialized work, agents **must** `read_file` on the matching `SKILL.md`.
+
+## Code file rules (critical)
+
+When creating or changing code under `/workspace/`:
+
+1. **Load `code-generator`** before writing new scripts; load **`code-reviewer`** only for review tasks.
+2. **`read_file` before `write_file` or `edit_file`** if the path might already exist.
+3. **One definition per name** — each function, class, and `if __name__ == "__main__"` block appears **at most once** per file.
+4. **`edit_file` replaces in place** — never append a second copy of the same function at the end of the file.
+5. **Retry policy** — if an edit fails, re-read the file and overwrite with the full corrected file; do not stack duplicate blocks.
+6. **Secrets in env** — use `os.getenv(...)`; never hardcode API keys in workspace files.
 
 ## Multi-Agent Workflow (example)
 
@@ -54,6 +67,12 @@ For: *"Research LangGraph multi-agent patterns and write a short blog post"*
 3. Orchestrator delegates writing to a subagent → loads `writer` skill → reads research
    file → saves `workspace/draft_langgraph_blog.md`.
 4. Orchestrator summarizes what was produced and where files live.
+
+For: *"Generate a Python script to check weather"*
+
+1. Orchestrator loads `code-generator` skill.
+2. Subagent reads existing file if present → writes **one** `/workspace/check_weather.py`.
+3. Optional: delegate `code-reviewer` if user asked for review.
 
 ## Adding Capabilities
 

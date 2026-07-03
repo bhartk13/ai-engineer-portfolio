@@ -3,8 +3,8 @@ name: code-reviewer
 description: >
   Reviews code for bugs, security issues, performance, and maintainability.
   Use when the user asks for a code review, PR feedback, security audit, or quality
-  assessment of existing code. Do NOT use for writing new features from scratch or
-  debugging runtime production incidents.
+  assessment of existing code. Do NOT use for writing new features from scratch (use
+  code-generator) or debugging runtime production incidents.
 license: MIT
 allowed-tools: Read Write
 ---
@@ -20,6 +20,7 @@ Produce actionable, structured reviews of source files in the repository or work
 1. Use `read_file` to load the target file(s).
 2. Evaluate:
    - Correctness and edge cases
+   - **Duplication** (same function/class/`main` defined twice)
    - Security (injection, secrets, unsafe defaults)
    - Performance and complexity
    - Readability and naming
@@ -28,7 +29,7 @@ Produce actionable, structured reviews of source files in the repository or work
    - Critical issues (must fix)
    - Suggestions (should consider)
    - Positive observations
-4. Save to `./workspace/review_<filename>.md`.
+4. Save to `/workspace/review_<filename>.md`.
 
 ## Example
 

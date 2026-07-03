@@ -270,9 +270,11 @@ export default function App() {
       );
       if (newThreadId) setThreadId(newThreadId);
 
-      const finalContent = errorMessage
-        ? `**Agent error**\n\n${errorMessage}\n\nUpdate \`OPENAI_MODEL\` in \`.env\` (try \`gpt-4o-mini\`) and restart the server.`
-        : assistantContent || "Agent finished without a text response.";
+      const finalContent =
+        assistantContent ||
+        (errorMessage
+          ? `**Agent error**\n\n${errorMessage}`
+          : "Agent finished without a text response.");
 
       setMessages((prev) => [
         ...prev,
