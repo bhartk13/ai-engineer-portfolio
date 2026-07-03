@@ -27,11 +27,13 @@ flowchart TB
     Orchestrator --> Plan[write_todos plan]
     Orchestrator --> Skills{Skill catalog metadata}
     Skills -->|read_file on match| SkillMD[skills/*/SKILL.md]
+    Orchestrator --> Tools[Sandboxed tools]
+    Tools --> Workspace[(/workspace/ → ./workspace/)]
     Orchestrator --> Task[task tool]
     Task --> Subagent[general-purpose subagent]
     Subagent --> SkillMD
-    Subagent --> Workspace[(/workspace/ → ./workspace/)]
-    Orchestrator --> Workspace
+    Subagent --> Tools
+    Subagent --> Workspace
     AGENTS[AGENTS.md shared memory] -.-> Orchestrator
     AGENTS -.-> Subagent
 ```
@@ -41,7 +43,25 @@ flowchart TB
 1. **Planning** — `write_todos` decomposes complex goals.
 2. **Delegation** — `task` spawns isolated subagents with the same skill library.
 3. **Progressive disclosure** — Only skill `name` + `description` load at startup; full `SKILL.md` loads when needed.
-4. **Filesystem workspace** — Research, drafts, reviews, and deploy bundles pass between agents as files under `/workspace/` (mapped to `./workspace/` on disk).
+4. **Filesystem workspace** — Research, drafts, charts, tests, and deploy bundles pass between agents as files under `/workspace/`.
+
+## Skills catalog
+
+Nine skills ship with the repo. Each follows the [Agent Skills spec](https://agentskills.io): `SKILL.md` plus optional `scripts/`, `references/`, and `assets/`.
+
+| Skill | Use when | Key tool / output |
+|-------|----------|-------------------|
+| `research` | Web research, competitive intel | `internet_search` → `research_*.md` (cited, ≤250 lines) |
+| `writer` | Blog posts, reports from notes | → `draft_*.md` |
+| `data-analyst` | CSV stats, executive analysis | `run_data_analysis` → `analysis_*.md` + charts |
+| `chart-generator` | Plot/chart/graph only (no full report) | `generate_chart` → `charts/*.png` |
+| `code-generator` | New Python scripts in workspace | → `*.py` (no duplication) |
+| `test-runner` | Verify generated code | `run_workspace_tests` → `test_report_*.md` |
+| `code-reviewer` | Security, bugs, maintainability | → `review_*.md` |
+| `static-deploy` | Publish markdown to free hosting | `deploy_static_site` → Netlify URL |
+| `web-quality` | SEO & accessibility audit after deploy | `check_web_quality` → `quality_report_*.md` |
+
+**Chart vs analysis:** use `chart-generator` for “make a chart”; use `data-analyst` for “analyze this CSV” with stats and a written report. Do not hand-write matplotlib scripts in workspace — use the tools.
 
 ## Project structure
 
@@ -49,30 +69,27 @@ flowchart TB
 deep-agents/
 ├── AGENTS.md                 # Shared team conventions (always loaded)
 ├── agent.py                  # Generic orchestrator factory
+├── config.py                 # Defaults (models, paths)
 ├── server.py                 # FastAPI backend + SSE streaming
-├── frontend/                 # React + Tailwind professional UI
-├── services/                 # Agent streaming + project data helpers
+├── frontend/                 # React + Tailwind UI
+│   └── src/data/suggestedPrompts.ts   # Per-skill sample tasks
+├── services/
+│   ├── agent_service.py      # SSE streaming, failover loop
+│   ├── llm_failover.py       # Multi-provider model chain
+│   ├── sandbox_runner.py     # Workspace-locked subprocess execution
+│   ├── data_analysis.py      # run_data_analysis
+│   ├── chart_generator.py    # generate_chart
+│   ├── test_runner.py        # run_workspace_tests
+│   ├── web_quality.py        # check_web_quality
+│   ├── static_deploy.py      # deploy_static_site
+│   ├── run_history.py        # Saved runs under ./runs/
+│   └── project_data.py       # Workspace + skills API helpers
+├── skills/                   # One folder per skill (see catalog above)
+├── workspace/                # Agent artifacts (not app source code)
+├── runs/                     # Orchestration run history
+├── scripts/run.sh            # Build frontend + start server (port fallback)
 ├── app.py                    # Legacy Streamlit UI (optional)
 ├── main.py                   # CLI runner
-├── scripts/run.sh            # Build frontend + start server
-├── skills/                   # Agent Skills spec folders (SKILL.md + scripts/references/assets)
-│   ├── research/
-│   ├── writer/
-│   ├── data-analyst/
-│   ├── chart-generator/
-│   ├── code-generator/
-│   ├── test-runner/
-│   ├── code-reviewer/
-│   ├── web-quality/
-│   └── static-deploy/
-├── services/
-│   ├── sandbox_runner.py     # Workspace-locked subprocess execution
-│   ├── data_analysis.py      # run_data_analysis tool
-│   ├── test_runner.py        # run_workspace_tests tool
-│   └── web_quality.py        # check_web_quality tool
-├── workspace/                # Agent artifacts (drafts, sites/, charts/, reports)
-├── runs/                     # Orchestration run history (auto-saved)
-├── pyproject.toml
 ├── requirements.txt
 └── .env.example
 ```
@@ -105,7 +122,7 @@ chmod +x scripts/run.sh
 ./scripts/run.sh
 ```
 
-Open `http://localhost:8000`.
+Open `http://localhost:8000` (if port 8000 is busy, `run.sh` falls back to **8001** — check terminal output).
 
 **Development** (hot reload for UI):
 
@@ -119,15 +136,18 @@ cd frontend && npm install && npm run dev
 
 Open `http://localhost:5173`.
 
-The UI includes:
-- **Chat panel** with markdown rendering and suggested prompts
+### UI features
+
+- **Sample tasks grid** — one clickable prompt per skill (+ full pipeline), shown on empty chat
+- **Browse samples** — return to the sample grid after a chat (top-right of chat panel)
+- **Chat panel** — markdown rendering, thread continuity via `thread_id`
 - **Orchestration pipeline** — plan → skills → subagents → workspace (with artifact diff)
 - **Live activity feed** — thoughts, tool calls, skill loads, delegations, deploy events
 - **Live site banner** — persistent Netlify URL from the latest `deploy_report_*.md`
 - **Run history** — every chat saved under `./runs/{id}/` (replayable from sidebar)
 - **Resizable sidebar** — drag the right edge on desktop to widen the Files tab
 - **Sidebar tabs** — skills catalog, plan, workspace files, run history, AGENTS.md memory
-- **Files tab** — auto-refreshes when agents write or deploy; full filenames wrap (no truncation)
+- **Files tab** — auto-refreshes when agents write, analyze, chart, test, or deploy
 
 ### Run (Streamlit UI — legacy)
 
@@ -140,17 +160,33 @@ Open `http://localhost:8501`.
 ### Run (CLI)
 
 ```bash
-python main.py "Research LangGraph multi-agent patterns and draft a short blog post"
+python main.py "Analyze workspace/sample_sales.csv and summarize trends"
 # or interactive mode:
 python main.py
 ```
 
+## Using CSV data
+
+There is no file-upload button yet. Add CSV files to the workspace folder:
+
+```bash
+cp ~/Downloads/my_data.csv workspace/my_data.csv
+```
+
+Then prompt: *"Analyze /workspace/my_data.csv"* or *"Generate a chart from sample_sales.csv"*.
+
+A demo dataset is included: `workspace/sample_sales.csv`.
+
 ## Example prompts
 
-Try these to see **research → writer** collaboration:
+Click any sample in the UI, or try:
 
 ```
-Analyze workspace/sample_sales.csv and summarize the revenue trends.
+Analyze workspace/sample_sales.csv and summarize revenue trends.
+```
+
+```
+Generate a dual-line sales chart from sample_sales.csv — revenue and units by product.
 ```
 
 ```
@@ -162,75 +198,53 @@ Research multi-agent orchestration trends, draft a blog post, deploy to Netlify,
 ```
 
 ```
-Review agent.py for production readiness and save findings to the workspace.
+Review workspace/check_weather.py for security issues and save findings.
 ```
-
-Watch the UI for:
-
-- **Skills tab** — metadata from each `SKILL.md`
-- **Plan tab** — todos from `write_todos`
-- **Files tab** — artifacts (`draft_*.md`, `analysis_*.md`, `charts/`, `test_report_*.md`, `quality_report_*.md`, `sites/`, `deploy_report_*.md`)
-- **Live activity** — real-time orchestration timeline (including deploy URL when live)
-- **Green banner** — click-through link to the latest Netlify deploy
 
 ## How skill routing works
 
-There is **no classifier**. `create_deep_agent(skills=["./skills"])` injects a catalog like:
+There is **no classifier**. `create_deep_agent(skills=["./skills"])` injects skill metadata into the system prompt. The model reads the user message, picks a skill, and calls `read_file("skills/<name>/SKILL.md")`. Well-written `description` fields (with trigger phrases and "Do NOT use for…" boundaries) are the routing engine.
 
-```
-Available skills:
-- research: "Conducts comprehensive web research..."
-- writer: "Writes high-quality blog posts..."
-- data-analyst: "Analyzes CSV datasets with stats and reports..."
-- chart-generator: "Generates chart PNGs from CSV (line, bar, dual-line)..."
-- code-generator: "Writes new Python scripts in workspace without duplication..."
-- test-runner: "Runs pytest or smoke tests on workspace code..."
-- code-reviewer: "Reviews code for bugs..."
-- web-quality: "Audits static HTML for SEO and accessibility..."
-- static-deploy: "Deploys to Netlify without asking..."
-```
-
-Each skill folder follows the [Agent Skills spec](https://agentskills.io): `SKILL.md` plus optional `scripts/`, `references/`, and `assets/`.
-
-Built-in tools (registered on the orchestrator):
+### Built-in tools
 
 | Tool | Purpose |
 |------|---------|
 | `internet_search` | Tavily web search |
-| `run_data_analysis` | Sandboxed pandas/matplotlib CSV analysis |
-| `generate_chart` | Custom charts from CSV → `/workspace/charts/*.png` |
-| `run_workspace_tests` | Pytest or smoke tests → `test_report_*.md` |
-| `check_web_quality` | SEO/a11y audit → `quality_report_*.md` |
+| `run_data_analysis` | Sandboxed pandas/matplotlib → report + charts |
+| `generate_chart` | Line, bar, scatter, dual-line charts → `charts/*.png` |
+| `run_workspace_tests` | Pytest or smoke test → `test_report_*.md` |
+| `check_web_quality` | SEO/a11y score → `quality_report_*.md` |
 | `deploy_static_site` | Markdown → HTML → Netlify |
 
-The model reads the user message, picks a skill, and calls `read_file("skills/research/SKILL.md")`. Well-written `description` fields (with trigger phrases and "Do NOT use for…" boundaries) are the routing engine.
+Custom tools require registering in `agent.py`. Skills only need a new folder under `skills/`.
 
 ## Workspace paths
 
-Agents read and write artifacts using **virtual paths** like `/workspace/draft_topic.md`. The orchestrator uses `FilesystemBackend(root_dir=".", virtual_mode=True)` so those paths resolve to the project `./workspace/` folder — not the filesystem root `/workspace/`.
-
-Predictable filenames (see `AGENTS.md`):
+Agents use **virtual paths** like `/workspace/draft_topic.md`. The backend maps these to `./workspace/` on disk.
 
 | Path | Purpose |
 |------|---------|
-| `/workspace/research_<topic>.md` | Research notes (≤250 lines; citations required) |
+| `/workspace/research_<topic>.md` | Research notes (cited, ≤250 lines) |
 | `/workspace/draft_<topic>.md` | Blog drafts |
 | `/workspace/analysis_<topic>.md` | CSV analysis reports |
-| `/workspace/charts/*.png` | Analysis charts |
+| `/workspace/charts/*.png` | Chart outputs |
 | `/workspace/test_report_<name>.md` | Test run results |
 | `/workspace/quality_report_<slug>.md` | SEO/a11y audit |
-| `/workspace/review_<target>.md` | Review output |
+| `/workspace/review_<target>.md` | Code review output |
 | `/workspace/sites/<slug>/index.html` | Static site bundle |
 | `/workspace/deploy_report_<slug>.md` | Deploy log + live URL |
+| `/workspace/<name>.py` | Generated scripts (avoid duplicate chart scripts) |
 
-## Autonomous deployment (no human-in-the-loop)
+**Cleanup tip:** one-off `*chart*.py` scripts in workspace are obsolete once `chart-generator` is available — safe to delete. Avoid nested `workspace/workspace/` paths (agent path bug).
+
+## Autonomous deployment
 
 For prompts like *"research, write, and deploy to a free cloud page"*:
 
 1. Agents **must not ask** which platform to use — default is **Netlify** (`static-deploy` skill).
-2. The `deploy_static_site` tool converts markdown → HTML, saves under `workspace/sites/<slug>/`, and publishes to Netlify when configured.
-3. **Conversation threads** (`thread_id`) keep follow-ups in the same task instead of starting over.
-4. Deploy bundles include a Netlify `_headers` file so `index.html` is served as `text/html` (not plain text).
+2. `deploy_static_site` converts markdown → HTML, saves under `workspace/sites/<slug>/`, and publishes when configured.
+3. `check_web_quality` runs after deploy when publishing.
+4. Deploy bundles include Netlify `_headers` so HTML is served with correct `Content-Type`.
 
 ```
 Research → write draft → deploy_static_site → check_web_quality → live URL + quality score
@@ -239,7 +253,7 @@ Research → write draft → deploy_static_site → check_web_quality → live U
 ### Netlify setup
 
 1. Create a free account at [app.netlify.com](https://app.netlify.com).
-2. Generate a **Personal Access Token**: [User settings → Applications → Personal access tokens](https://app.netlify.com/user/applications#personal-access-tokens).
+2. Generate a **Personal Access Token**: [User settings → Applications](https://app.netlify.com/user/applications#personal-access-tokens).
 3. Add to `.env`:
 
 ```env
@@ -250,21 +264,14 @@ DEPLOY_PLATFORM=netlify
 
 Without `NETLIFY_AUTH_TOKEN`, the static bundle and `deploy_report_*.md` are still created locally; only the live publish is skipped.
 
-After a successful deploy, find the URL in:
-
-- The **green Live site banner** at the top of the UI
-- The **Orchestration pipeline** / activity feed (deploy event)
-- `workspace/deploy_report_<slug>.md` under **Files**
-
-Redeploy after code changes: restart the server, then prompt e.g. *"Deploy `/workspace/draft_<topic>.md` to Netlify"* — set `NETLIFY_SITE_ID` to update the same site instead of creating a new one.
-
 ## Adding a new skill
 
 1. Create `skills/my-skill/SKILL.md` with YAML frontmatter (`name`, `description`) and instructions.
-2. Restart the app.
-3. No changes to `agent.py` required.
+2. Optionally add `scripts/`, `references/`, or `assets/` per the Agent Skills spec.
+3. Add a sample prompt in `frontend/src/data/suggestedPrompts.ts`.
+4. Restart the app.
 
-See [agentskills.io](https://agentskills.io) for the full specification.
+No changes to `agent.py` are required unless the skill needs a new custom tool.
 
 ## Environment variables
 
@@ -275,48 +282,36 @@ See [agentskills.io](https://agentskills.io) for the full specification.
 | `LLM_PROVIDER` | No | `auto`, `openai`, or `anthropic` (default `auto`) |
 | `TAVILY_API_KEY` | For research | Web search tool |
 | `WORKSPACE_ROOT` | No | Default `./workspace` |
-| `RUNS_ROOT` | No | Default `./runs` (orchestration history) |
+| `RUNS_ROOT` | No | Default `./runs` |
 | `DEPLOY_PLATFORM` | No | Default `netlify` |
-| `NETLIFY_AUTH_TOKEN` | For live deploy | Netlify personal access token ([how to create](https://app.netlify.com/user/applications#personal-access-tokens)) |
-| `NETLIFY_SITE_ID` | No | Reuse existing Netlify site on redeploy (recommended) |
-| `ANTHROPIC_MODEL` | No | Default `claude-haiku-4-5-20251001` (auto-discovered from your account) |
-| `OPENAI_MODEL` | No | Default `gpt-4o-mini` (recommended for rate limits) |
-| `GOOGLE_API_KEY` | For free failover | Gemini free tier ([AI Studio key](https://aistudio.google.com/apikey)) |
-| `GOOGLE_MODEL` | No | Default `gemini-2.0-flash` |
-| `LLM_FAILOVER` | No | Auto-switch models on 429 (default `true`) |
-| `LLM_FAILOVER_MODELS` | No | Custom chain, e.g. `openai:gpt-4o-mini,google:gemini-2.0-flash,anthropic:...` |
+| `NETLIFY_AUTH_TOKEN` | For live deploy | Netlify personal access token |
+| `NETLIFY_SITE_ID` | No | Reuse existing Netlify site on redeploy |
+| `ANTHROPIC_MODEL` | No | Default `claude-haiku-4-5-20251001` (auto-discovered from account) |
+| `OPENAI_MODEL` | No | Default `gpt-4o-mini` |
+| `GOOGLE_API_KEY` | For free failover | Gemini ([AI Studio key](https://aistudio.google.com/apikey)) |
+| `GOOGLE_MODEL` | No | Default `gemini-2.5-flash-lite` |
+| `LLM_FAILOVER` | No | Auto-switch models on errors (default `true`) |
+| `LLM_FAILOVER_INCLUDE_GOOGLE` | No | Include Gemini in chain (default `true`; set `false` if quota exhausted) |
+| `LLM_FAILOVER_MODELS` | No | Custom chain, e.g. `anthropic:claude-haiku-4-5-20251001,openai:gpt-4o-mini` |
+| `SANDBOX_TIMEOUT_SECONDS` | No | Subprocess timeout for analysis/tests (default `60`) |
 
-## Rate limits and model failover
+## Rate limits, quota, and failover
 
-Deep agents make **many** LLM calls (planning, tools, subagents), so OpenAI TPM limits are easy to hit.
+Deep agents make **many** LLM calls (planning, tools, subagents), so provider limits are easy to hit.
 
-On **429 / rate limit**, the app automatically:
+| Error | Meaning | Fix |
+|-------|---------|-----|
+| `rate_limit_exceeded` | Tokens per minute | Wait ~60s; use `gpt-4o-mini`; failover to Anthropic |
+| `insufficient_quota` | **OpenAI billing exhausted** | Add credits **or** set `LLM_PROVIDER=anthropic` |
 
-1. Switches to the **next model** in the failover chain (shown in live activity)
-2. Waits and retries if no alternate model is left
+On **429 / model errors**, the app automatically switches to the next model in the failover chain (shown in live activity). Check: `GET /api/health` → `failover_chain`.
 
-**Default chain** (when `LLM_FAILOVER=true`):
-
-1. Your primary OpenAI model
-2. **Anthropic** — auto-discovered from your account via the Models API (Haiku first, then Sonnet)
-3. **Google Gemini** — if `GOOGLE_API_KEY` is set (last; free tier quotas vary)
-
-If Gemini shows `RESOURCE_EXHAUSTED` / `limit: 0`, disable it in failover:
+**Recommended when OpenAI credits are low:**
 
 ```env
-LLM_FAILOVER_INCLUDE_GOOGLE=false
-```
-
-Or remove/comment out `GOOGLE_API_KEY` in `.env`.
-
-Check active chain: `GET /api/health` → `failover_chain`.
-
-**Recommended for heavy reasoning tasks:**
-
-```env
-OPENAI_MODEL=gpt-4o-mini
-GOOGLE_API_KEY=your_gemini_key
+LLM_PROVIDER=anthropic
 LLM_FAILOVER=true
+LLM_FAILOVER_INCLUDE_GOOGLE=false
 ```
 
 Restart the server after changing `.env`.
@@ -324,9 +319,10 @@ Restart the server after changing `.env`.
 ## Key dependencies
 
 - [`deepagents`](https://github.com/langchain-ai/deepagents) — planning, filesystem tools, subagents, skill middleware
-- [`langchain-anthropic`](https://python.langchain.com/) / `langchain-openai` — model integrations
+- [`langchain-anthropic`](https://python.langchain.com/) / `langchain-openai` / `langchain-google-genai` — model integrations
 - [`tavily-python`](https://github.com/tavily-ai/tavily-python) — web search
-- **React + Vite + Tailwind** — professional dashboard UI
+- **pandas**, **matplotlib**, **pytest** — sandboxed data analysis and tests
+- **React + Vite + Tailwind** — dashboard UI
 - **FastAPI** — REST + SSE streaming API
 
 ## Further reading
