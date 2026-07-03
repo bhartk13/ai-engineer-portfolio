@@ -3,8 +3,8 @@ name: code-generator
 description: >
   Writes new Python scripts and small utilities in the workspace from a user spec.
   Use when the user asks to generate, create, implement, or scaffold code (e.g. a
-  weather script, CLI tool, helper module). Do NOT use for reviewing existing code
-  (use code-reviewer) or for markdown/blog writing (use writer).
+  weather script, CLI tool, helper module). Do NOT use for CSV charts (use chart-generator),
+  reviewing existing code (use code-reviewer), or markdown/blog writing (use writer).
 license: MIT
 allowed-tools: Read Write
 ---
@@ -20,18 +20,20 @@ implementation — no duplicated blocks.
 
 1. **Read first** — If the target path may already exist, call `read_file` on it before
    writing or editing.
-2. **New file** — Use `write_file` once with the complete final content.
-3. **Existing file** — Use `edit_file` with a unique `old_string` that matches exactly
+2. Load `skills/code-generator/references/python-checklist.md` before finishing.
+3. **New file** — Use `write_file` once with the complete final content.
+4. **Existing file** — Use `edit_file` with a unique `old_string` that matches exactly
    once. Replace or patch in place. **Never append** a second copy of the same function,
    class, or `if __name__ == "__main__"` block.
-4. **Failed edit** — If `edit_file` fails, `read_file` again and either fix the match
+5. **Failed edit** — If `edit_file` fails, `read_file` again and either fix the match
    or overwrite the entire file with `write_file` (full corrected content), not a partial
    append.
-5. **Secrets** — Read API keys from environment variables (e.g. `os.getenv("OPENWEATHER_API_KEY")`).
+6. **Secrets** — Read API keys from environment variables (e.g. `os.getenv("OPENWEATHER_API_KEY")`).
    Never hardcode keys or paste `YOUR_API_KEY` placeholders in committed paths.
-6. **Save to** `/workspace/<descriptive_name>.py` (or `.md` for docs-only output).
-7. **Self-check before finishing** — Confirm the file has no duplicate function or
+7. **Save to** `/workspace/<descriptive_name>.py` (or `.md` for docs-only output).
+8. **Self-check before finishing** — Confirm the file has no duplicate function or
    class definitions (grep mentally: each `def` / `class` name appears once).
+9. When the user asked to **test** the code, hand off to `test-runner` after saving.
 
 ## Anti-patterns (never do this)
 

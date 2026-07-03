@@ -6,7 +6,7 @@ description: >
   page. Auto-selects Netlify by default — never ask which platform to use.
   Do NOT use for research, writing drafts, or code review.
 license: MIT
-allowed-tools: deploy_static_site Read Write
+allowed-tools: deploy_static_site Read Write check_web_quality
 ---
 
 # Static Deploy Skill
@@ -30,11 +30,13 @@ If `NETLIFY_AUTH_TOKEN` is missing, still build the site bundle and report what 
 1. Confirm the markdown draft exists in `/workspace/` (e.g. `/workspace/draft_<topic>.md`).
 2. Call `deploy_static_site(markdown_file="/workspace/draft_<topic>.md", site_slug="<topic>")`.
 3. The tool writes `/workspace/deploy_report_<slug>.md` automatically — do not retry on other filenames if deploy fails.
-4. Return the live URL (or bundle path + setup note) in your final message.
+4. **Quality gate:** call `check_web_quality(site_slug="<topic>")` and mention the score in your final message.
+5. Return the live URL (or bundle path + setup note) in your final message.
+
+Load `skills/static-deploy/references/netlify-setup.md` if deploy fails due to missing tokens.
 
 ## Example
 
 **Input:** "Deploy the blog post to a free cloud page"
 
-**Behavior:** Load this skill → call `deploy_static_site` → respond with Netlify URL.
-Do **not** ask "Which platform would you like?"
+**Behavior:** Load this skill → `deploy_static_site` → `check_web_quality` → URL + quality score.

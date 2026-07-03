@@ -1,5 +1,6 @@
 import {
   ArrowUp,
+  LayoutGrid,
   Loader2,
   SendHorizonal,
   Square,
@@ -7,18 +8,20 @@ import {
 import { useEffect, useRef } from "react";
 import type { ChatMessage } from "../types";
 import { MessageBubble } from "./MessageBubble";
-import { SuggestedPrompts } from "./Header";
+import { SuggestedPrompts } from "./SuggestedPrompts";
 
 export function ChatPanel({
   messages,
   isRunning,
   onSend,
   onStop,
+  onNewChat,
 }: {
   messages: ChatMessage[];
   isRunning: boolean;
   onSend: (prompt: string) => void;
   onStop: () => void;
+  onNewChat: () => void;
 }) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -36,11 +39,25 @@ export function ChatPanel({
 
   return (
     <section className="flex min-h-0 flex-1 flex-col rounded-3xl border border-white/5 bg-surface-900/70 shadow-2xl shadow-black/20">
-      <div className="border-b border-white/5 px-5 py-4">
-        <h2 className="text-sm font-semibold text-white">Orchestrator chat</h2>
-        <p className="text-xs text-slate-400">
-          Plan · delegate · load skills · collaborate via workspace
-        </p>
+      <div className="flex items-start justify-between gap-3 border-b border-white/5 px-5 py-4">
+        <div>
+          <h2 className="text-sm font-semibold text-white">Orchestrator chat</h2>
+          <p className="text-xs text-slate-400">
+            Plan · delegate · load skills · collaborate via workspace
+          </p>
+        </div>
+        {messages.length > 0 && (
+          <button
+            type="button"
+            onClick={onNewChat}
+            disabled={isRunning}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-white/10 bg-surface-850/80 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-emerald-500/30 hover:text-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
+            title="Start a new chat and browse sample tasks"
+          >
+            <LayoutGrid className="h-3.5 w-3.5" />
+            Browse samples
+          </button>
+        )}
       </div>
 
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5">
@@ -48,8 +65,8 @@ export function ChatPanel({
           <div className="space-y-6">
             <div className="rounded-2xl border border-dashed border-white/10 bg-surface-850/40 p-8 text-center">
               <p className="text-sm text-slate-400">
-                Ask the team to research, write, or review. Agents coordinate
-                through SKILL.md workflows and shared files.
+                Pick a sample task below — each maps to a SKILL.md workflow
+                (research, charts, deploy, tests, and more).
               </p>
             </div>
             <SuggestedPrompts onSelect={onSend} disabled={isRunning} />

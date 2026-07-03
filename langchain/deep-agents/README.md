@@ -55,13 +55,22 @@ deep-agents/
 ├── app.py                    # Legacy Streamlit UI (optional)
 ├── main.py                   # CLI runner
 ├── scripts/run.sh            # Build frontend + start server
-├── skills/
-│   ├── research/SKILL.md
-│   ├── writer/SKILL.md
-│   ├── code-generator/SKILL.md
-│   ├── code-reviewer/SKILL.md
-│   └── static-deploy/SKILL.md
-├── workspace/                # Agent artifacts (drafts, sites/, deploy_report_*.md)
+├── skills/                   # Agent Skills spec folders (SKILL.md + scripts/references/assets)
+│   ├── research/
+│   ├── writer/
+│   ├── data-analyst/
+│   ├── chart-generator/
+│   ├── code-generator/
+│   ├── test-runner/
+│   ├── code-reviewer/
+│   ├── web-quality/
+│   └── static-deploy/
+├── services/
+│   ├── sandbox_runner.py     # Workspace-locked subprocess execution
+│   ├── data_analysis.py      # run_data_analysis tool
+│   ├── test_runner.py        # run_workspace_tests tool
+│   └── web_quality.py        # check_web_quality tool
+├── workspace/                # Agent artifacts (drafts, sites/, charts/, reports)
 ├── runs/                     # Orchestration run history (auto-saved)
 ├── pyproject.toml
 ├── requirements.txt
@@ -141,26 +150,26 @@ python main.py
 Try these to see **research → writer** collaboration:
 
 ```
-Research the impact of multi-agent systems on software engineering and draft a 500-word blog post.
+Analyze workspace/sample_sales.csv and summarize the revenue trends.
+```
+
+```
+Generate a Python script to check weather, then run tests and save the report.
+```
+
+```
+Research multi-agent orchestration trends, draft a blog post, deploy to Netlify, and run a web quality audit.
 ```
 
 ```
 Review agent.py for production readiness and save findings to the workspace.
 ```
 
-```
-Research current trends in agentic AI, write an executive summary, then review the draft for clarity.
-```
-
-```
-Research multi-agent orchestration trends, draft a blog post, save it to the workspace, and deploy to a free cloud page.
-```
-
 Watch the UI for:
 
 - **Skills tab** — metadata from each `SKILL.md`
 - **Plan tab** — todos from `write_todos`
-- **Files tab** — artifacts agents write for each other (`draft_*.md`, `sites/`, `deploy_report_*.md`)
+- **Files tab** — artifacts (`draft_*.md`, `analysis_*.md`, `charts/`, `test_report_*.md`, `quality_report_*.md`, `sites/`, `deploy_report_*.md`)
 - **Live activity** — real-time orchestration timeline (including deploy URL when live)
 - **Green banner** — click-through link to the latest Netlify deploy
 
@@ -172,10 +181,27 @@ There is **no classifier**. `create_deep_agent(skills=["./skills"])` injects a c
 Available skills:
 - research: "Conducts comprehensive web research..."
 - writer: "Writes high-quality blog posts..."
+- data-analyst: "Analyzes CSV datasets with stats and reports..."
+- chart-generator: "Generates chart PNGs from CSV (line, bar, dual-line)..."
 - code-generator: "Writes new Python scripts in workspace without duplication..."
+- test-runner: "Runs pytest or smoke tests on workspace code..."
 - code-reviewer: "Reviews code for bugs..."
+- web-quality: "Audits static HTML for SEO and accessibility..."
 - static-deploy: "Deploys to Netlify without asking..."
 ```
+
+Each skill folder follows the [Agent Skills spec](https://agentskills.io): `SKILL.md` plus optional `scripts/`, `references/`, and `assets/`.
+
+Built-in tools (registered on the orchestrator):
+
+| Tool | Purpose |
+|------|---------|
+| `internet_search` | Tavily web search |
+| `run_data_analysis` | Sandboxed pandas/matplotlib CSV analysis |
+| `generate_chart` | Custom charts from CSV → `/workspace/charts/*.png` |
+| `run_workspace_tests` | Pytest or smoke tests → `test_report_*.md` |
+| `check_web_quality` | SEO/a11y audit → `quality_report_*.md` |
+| `deploy_static_site` | Markdown → HTML → Netlify |
 
 The model reads the user message, picks a skill, and calls `read_file("skills/research/SKILL.md")`. Well-written `description` fields (with trigger phrases and "Do NOT use for…" boundaries) are the routing engine.
 
@@ -187,8 +213,12 @@ Predictable filenames (see `AGENTS.md`):
 
 | Path | Purpose |
 |------|---------|
-| `/workspace/research_<topic>.md` | Research notes |
+| `/workspace/research_<topic>.md` | Research notes (≤250 lines; citations required) |
 | `/workspace/draft_<topic>.md` | Blog drafts |
+| `/workspace/analysis_<topic>.md` | CSV analysis reports |
+| `/workspace/charts/*.png` | Analysis charts |
+| `/workspace/test_report_<name>.md` | Test run results |
+| `/workspace/quality_report_<slug>.md` | SEO/a11y audit |
 | `/workspace/review_<target>.md` | Review output |
 | `/workspace/sites/<slug>/index.html` | Static site bundle |
 | `/workspace/deploy_report_<slug>.md` | Deploy log + live URL |
@@ -203,7 +233,7 @@ For prompts like *"research, write, and deploy to a free cloud page"*:
 4. Deploy bundles include a Netlify `_headers` file so `index.html` is served as `text/html` (not plain text).
 
 ```
-Research → write draft → deploy_static_site → live URL
+Research → write draft → deploy_static_site → check_web_quality → live URL + quality score
 ```
 
 ### Netlify setup

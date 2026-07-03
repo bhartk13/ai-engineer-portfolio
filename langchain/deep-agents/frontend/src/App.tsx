@@ -177,7 +177,15 @@ export default function App() {
           { ...base, type: "tool", name: event.name, args: event.args },
         ]);
         if (
-          ["write_file", "edit_file", "deploy_static_site"].includes(event.name)
+          [
+            "write_file",
+            "edit_file",
+            "deploy_static_site",
+            "run_data_analysis",
+            "generate_chart",
+            "run_workspace_tests",
+            "check_web_quality",
+          ].includes(event.name)
         ) {
           refreshWorkspace().catch(console.error);
         }
@@ -306,6 +314,17 @@ export default function App() {
     abortRef.current?.abort();
   };
 
+  const handleNewChat = () => {
+    if (isRunning) return;
+    setMessages([]);
+    setThreadId(null);
+    setActivity([]);
+    setPlan([]);
+    setRunArtifacts(null);
+    setCurrentRunId(null);
+    setSelectedRunId(null);
+  };
+
   const handleSelectFile = async (path: string) => {
     setSelectedFile(path);
     const file = await fetchWorkspaceFile(path);
@@ -398,6 +417,7 @@ export default function App() {
             isRunning={isRunning}
             onSend={handleSend}
             onStop={handleStop}
+            onNewChat={handleNewChat}
           />
           <div className="flex min-h-0 min-w-0 flex-col xl:w-[400px]">
             <OrchestrationTimeline

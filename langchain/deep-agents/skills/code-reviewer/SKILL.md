@@ -18,18 +18,19 @@ Produce actionable, structured reviews of source files in the repository or work
 ## Instructions
 
 1. Use `read_file` to load the target file(s).
-2. Evaluate:
+2. Load `skills/code-reviewer/references/security-checklist.md` for security review.
+3. Evaluate:
    - Correctness and edge cases
    - **Duplication** (same function/class/`main` defined twice)
    - Security (injection, secrets, unsafe defaults)
    - Performance and complexity
    - Readability and naming
-3. Format the review as markdown with sections:
+4. Format the review as markdown with sections:
    - Summary (1 paragraph)
    - Critical issues (must fix)
    - Suggestions (should consider)
    - Positive observations
-4. Save to `/workspace/review_<filename>.md`.
+5. Save to `/workspace/review_<filename>.md`.
 
 ## Example
 

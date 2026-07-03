@@ -14,26 +14,32 @@ allowed-tools: internet_search Read Write
 
 ## Overview
 
-Structured web research: decompose questions, search iteratively, synthesize findings,
-and persist notes for other agents.
+Structured web research: decompose questions, search iteratively, synthesize findings
+with **inline citations**, and persist concise notes for other agents.
 
 ## Instructions
 
 1. Parse the query into 2–4 focused sub-questions.
 2. Run `internet_search` for each sub-question; refine queries if results are thin.
 3. Cross-check facts across multiple results when possible.
-4. Write a structured markdown report with:
-   - Executive summary (3–5 bullets)
-   - Key findings by theme
-   - Sources / search queries used
-5. Save to `/workspace/research_<short_topic>.md` using a descriptive slug.
+4. **Cite every major claim** inline as `[Source Title](url)` — load
+   `skills/research/references/citation-format.md` for format rules.
+5. Write a structured markdown report with:
+   - Executive summary (3–5 bullets, each with at least one citation)
+   - Key findings by theme (max **8 themes**, max **5 bullets per theme**)
+   - Sources table at the bottom
+6. **Length cap:** keep the main report under **~250 lines**. If more detail is needed,
+   save overflow to `/workspace/research_<topic>_detail.md` and link to it from the main file.
+   Load `skills/research/references/length-limits.md` before writing long reports.
+7. Save main report to `/workspace/research_<short_topic>.md`.
 
 ## Handoff
 
-Tell the orchestrator the exact filepath so the **writer** skill can read it.
+Tell the orchestrator the exact filepath. If the writer skill reads a long research file,
+summarize first or point them to the executive summary section only.
 
 ## Example
 
 **Input:** "Research multi-agent orchestration trends in 2026"
 
-**Output:** `workspace/research_multi_agent_2026.md` with summarized findings.
+**Output:** `workspace/research_multi_agent_2026.md` with cited findings (≤250 lines).

@@ -13,7 +13,11 @@ from tavily import TavilyClient
 
 from config import MEMORY_FILES, SKILLS_ROOT, WORKSPACE_ROOT
 from services.llm_failover import build_chat_model, get_failover_chain
+from services.chart_generator import generate_chart
+from services.data_analysis import run_data_analysis
 from services.static_deploy import deploy_static_site
+from services.test_runner import run_workspace_tests
+from services.web_quality import check_web_quality
 
 load_dotenv()
 
@@ -55,7 +59,11 @@ Specialized workflows live in SKILL.md files under `skills/`. Load them on deman
 - Complete multi-step tasks **end-to-end** without asking the user to pick options.
 - **Never ask** which cloud platform, framework, or format to use — apply defaults from AGENTS.md.
 - **Deployment:** when the user wants a free cloud page, load `static-deploy` and call
-  `deploy_static_site`. Default platform is **Netlify** (auto-selected).
+  `deploy_static_site`. Default platform is **Netlify** (auto-selected). Run
+  `check_web_quality` after deploy when publishing.
+- **Data analysis:** load `data-analyst` and call `run_data_analysis` for CSV stats/reports.
+- **Charts only:** load `chart-generator` and call `generate_chart` — do not write matplotlib scripts.
+- **Testing:** after generating code, load `test-runner` and call `run_workspace_tests`.
 - If the user sends a short follow-up in the same thread, treat it as input for the
   **current task**, not a brand-new unrelated request.
 - Record decisions in workspace files; return URLs and file paths in the final answer.
@@ -68,8 +76,8 @@ Specialized workflows live in SKILL.md files under `skills/`. Load them on deman
 - Load a skill before executing its workflow.
 - Prefer subagents when a sub-task would clutter the main thread.
 - **Code in `/workspace/`:** read before write; never duplicate functions or `if __name__`
-  blocks; use `code-generator` skill for new scripts; fix failed edits by overwriting the
-  whole file, not appending a second copy.
+  blocks; use `code-generator` for general scripts, `chart-generator` for CSV charts;
+  fix failed edits by overwriting the whole file, not appending a second copy.
 """
 
 
@@ -92,7 +100,14 @@ def get_deep_agent(failover_index: int = 0):
     return create_deep_agent(
         model=build_chat_model(spec),
         system_prompt=ORCHESTRATOR_PROMPT,
-        tools=[internet_search, deploy_static_site],
+        tools=[
+            internet_search,
+            deploy_static_site,
+            run_data_analysis,
+            generate_chart,
+            run_workspace_tests,
+            check_web_quality,
+        ],
         skills=[SKILLS_ROOT],
         memory=MEMORY_FILES,
         backend=FilesystemBackend(root_dir=".", virtual_mode=True),

@@ -16,9 +16,13 @@ disclosure — agents see skill metadata first, full instructions only when rele
 | **Orchestrator** | Plans with `write_todos`, routes tasks, delegates | (none — generic) |
 | **Researcher** | Web search, synthesis, structured notes | `research` |
 | **Writer** | Outlines and drafts from research artifacts | `writer` |
+| **Analyst** | CSV analysis, stats, executive reports | `data-analyst` |
+| **Visualizer** | Charts/plots from CSV (line, bar, dual-line) | `chart-generator` |
 | **Coder** | New scripts and utilities in workspace | `code-generator` |
+| **Tester** | Pytest/smoke tests on workspace code | `test-runner` |
 | **Reviewer** | Code/content review with structured feedback | `code-reviewer` |
 | **Publisher** | Static site build + free cloud deploy (Netlify default) | `static-deploy` |
+| **Quality** | SEO/a11y audit on deployed HTML bundles | `web-quality` |
 
 Subagents spawned via the `task` tool use the `general-purpose` type. They share this
 `AGENTS.md` context and the same skill library.
@@ -36,8 +40,12 @@ Subagents spawned via the `task` tool use the `general-purpose` type. They share
 - Skills live under `skills/<name>/SKILL.md`; folder name should match YAML `name`.
 - **All artifacts** (research notes, drafts, reviews) go to `/workspace/` only (virtual path).
 - Use predictable filenames so agents can hand off work:
-  - `/workspace/research_<topic>.md` — raw research summaries
+  - `/workspace/research_<topic>.md` — raw research summaries (≤250 lines; overflow in `_detail.md`)
   - `/workspace/draft_<topic>.md` — written content
+  - `/workspace/analysis_<topic>.md` — CSV analysis reports
+  - `/workspace/charts/*.png` — chart-generator and data-analyst outputs
+  - `/workspace/test_report_<name>.md` — test run results
+  - `/workspace/quality_report_<slug>.md` — SEO/a11y audit scores
   - `/workspace/review_<target>.md` — review output
   - `/workspace/sites/<slug>/index.html` — static site bundle
   - `/workspace/deploy_report_<slug>.md` — deploy log + URL
@@ -72,7 +80,23 @@ For: *"Generate a Python script to check weather"*
 
 1. Orchestrator loads `code-generator` skill.
 2. Subagent reads existing file if present → writes **one** `/workspace/check_weather.py`.
-3. Optional: delegate `code-reviewer` if user asked for review.
+3. Load `test-runner` → `run_workspace_tests` → `/workspace/test_report_check_weather.md`.
+4. Optional: delegate `code-reviewer` if user asked for review.
+
+For: *"Generate a sales chart from sample_sales.csv"*
+
+1. Orchestrator loads `chart-generator` skill.
+2. Call `generate_chart` with `dual_line`, `group_by=product` — **do not** write `gen_chart.py`.
+3. Return `/workspace/charts/sales_performance.png`.
+
+For: *"Analyze sample_sales.csv"*
+
+1. Orchestrator loads `data-analyst` skill.
+2. Call `run_data_analysis` → `/workspace/analysis_sales.md` + charts in `/workspace/charts/`.
+
+For: *"Research, write, deploy, and check quality"*
+
+1. Research → writer → `static-deploy` → `check_web_quality` → return URL + quality score.
 
 ## Adding Capabilities
 

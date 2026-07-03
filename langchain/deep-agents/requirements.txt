@@ -9,3 +9,6 @@ uvicorn[standard]>=0.34.0
 streamlit>=1.55.0
 markdown>=3.7
 requests>=2.32.0
+pandas>=2.2.0
+matplotlib>=3.9.0
+pytest>=8.3.0

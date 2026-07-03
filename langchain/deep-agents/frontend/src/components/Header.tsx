@@ -4,7 +4,6 @@ import {
   FileText,
   Layers3,
   Sparkles,
-  Zap,
 } from "lucide-react";
 
 export function Header() {
@@ -61,37 +60,6 @@ function Stat({
           {hint}
         </div>
       </div>
-    </div>
-  );
-}
-
-export function SuggestedPrompts({
-  onSelect,
-  disabled,
-}: {
-  onSelect: (prompt: string) => void;
-  disabled?: boolean;
-}) {
-  const prompts = [
-    "Research multi-agent orchestration trends, draft a blog post, save it, and deploy to a free cloud page.",
-    "Review agent.py for production readiness and save findings.",
-    "Research LangGraph patterns, write an executive summary, then review the draft.",
-  ];
-
-  return (
-    <div className="grid gap-3 sm:grid-cols-3">
-      {prompts.map((prompt) => (
-        <button
-          key={prompt}
-          type="button"
-          disabled={disabled}
-          onClick={() => onSelect(prompt)}
-          className="group rounded-2xl border border-white/5 bg-surface-850/60 p-4 text-left transition hover:border-emerald-500/30 hover:bg-surface-800 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <Zap className="mb-2 h-4 w-4 text-emerald-400 transition group-hover:scale-110" />
-          <p className="text-sm leading-relaxed text-slate-300">{prompt}</p>
-        </button>
-      ))}
     </div>
   );
 }
