@@ -1,0 +1,110 @@
+spring:
+  application:
+    name: enterprise-mcp-gateway
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/mcp_gateway}
+    username: ${DB_USERNAME:mcp_gateway}
+    password: ${DB_PASSWORD:changeme}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+server:
+  port: 8080
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when-authorized
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  tracing:
+    sampling:
+      probability: 1.0
+
+mcp:
+  gateway:
+    security:
+      # Production: point at your IdP's JWKS endpoint (Okta / Azure AD / Auth0 / Keycloak)
+      jwk-set-uri: ${MCP_JWK_SET_URI:}
+      # Dev/CI only — ignored if jwk-set-uri is set
+      local-hmac-secret: ${MCP_LOCAL_HMAC_SECRET:}
+    cache:
+      tool-result-ttl-seconds: 120
+    rate-limit:
+      requests-per-period: 100
+      period-seconds: 60
+    connectors:
+      github:
+        enabled: ${GITHUB_CONNECTOR_ENABLED:false}
+        base-url: ${GITHUB_API_BASE_URL:https://api.github.com}
+        token: ${GITHUB_TOKEN:}
+      jira:
+        enabled: ${JIRA_CONNECTOR_ENABLED:false}
+        base-url: ${JIRA_BASE_URL:}
+        username: ${JIRA_USERNAME:}
+        api-token: ${JIRA_API_TOKEN:}
+      servicenow:
+        enabled: ${SERVICENOW_CONNECTOR_ENABLED:false}
+        instance-url: ${SERVICENOW_INSTANCE_URL:}
+        username: ${SERVICENOW_USERNAME:}
+        password: ${SERVICENOW_PASSWORD:}
+      salesforce:
+        enabled: ${SALESFORCE_CONNECTOR_ENABLED:false}
+        instance-url: ${SALESFORCE_INSTANCE_URL:}
+        api-version: v61.0
+        access-token: ${SALESFORCE_ACCESS_TOKEN:}
+      snowflake:
+        enabled: ${SNOWFLAKE_CONNECTOR_ENABLED:false}
+        account-url: ${SNOWFLAKE_ACCOUNT_URL:}
+        bearer-token: ${SNOWFLAKE_BEARER_TOKEN:}
+        warehouse: ${SNOWFLAKE_WAREHOUSE:}
+        database: ${SNOWFLAKE_DATABASE:}
+        schema: ${SNOWFLAKE_SCHEMA:}
+      sharepoint:
+        enabled: ${SHAREPOINT_CONNECTOR_ENABLED:false}
+        graph-base-url: https://graph.microsoft.com/v1.0
+        bearer-token: ${SHAREPOINT_BEARER_TOKEN:}
+        site-id: ${SHAREPOINT_SITE_ID:}
+      database:
+        enabled: ${DB_CONNECTOR_ENABLED:true}
+        allowed-tables: ${DB_CONNECTOR_ALLOWED_TABLES:}
+        max-rows: 500
+      rest:
+        endpoints: {}
+
+logging:
+  level:
+    root: INFO
+    com.enterprise.mcpgateway: INFO
+  pattern:
+    console: "%d{ISO8601} [%thread] %-5level %logger{36} [correlationId=%X{correlationId}] - %msg%n"
