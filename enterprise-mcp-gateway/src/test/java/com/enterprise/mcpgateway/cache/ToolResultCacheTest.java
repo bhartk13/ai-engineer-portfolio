@@ -4,7 +4,7 @@ import com.enterprise.mcpgateway.mcp.tool.ToolResult;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import org.springframework.data.redis.core.ReactiveRedisTemplate;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.data.redis.core.ReactiveValueOperations;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -19,8 +19,8 @@ class ToolResultCacheTest {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @SuppressWarnings("unchecked")
-    private ReactiveRedisTemplate<String, String> mockTemplate(ReactiveValueOperations<String, String> ops) {
-        ReactiveRedisTemplate<String, String> template = mock(ReactiveRedisTemplate.class);
+    private ReactiveStringRedisTemplate mockTemplate(ReactiveValueOperations<String, String> ops) {
+        ReactiveStringRedisTemplate template = mock(ReactiveStringRedisTemplate.class);
         when(template.opsForValue()).thenReturn(ops);
         return template;
     }

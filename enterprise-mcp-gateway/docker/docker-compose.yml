@@ -17,7 +17,9 @@ services:
       POSTGRES_USER: mcp_gateway
       POSTGRES_PASSWORD: changeme
     ports:
-      - "5432:5432"
+      # Host port 5433 avoids clashing with a local PostgreSQL on 5432.
+      # Inside the compose network the gateway still uses postgres:5432.
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

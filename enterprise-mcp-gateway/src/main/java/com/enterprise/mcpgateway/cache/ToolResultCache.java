@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.ReactiveRedisTemplate;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
@@ -30,11 +30,11 @@ public class ToolResultCache {
             "create_", "update_", "delete_", "post_", "put_", "patch_", "execute_write"
     );
 
-    private final ReactiveRedisTemplate<String, String> redisTemplate;
+    private final ReactiveStringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
     private final Duration ttl;
 
-    public ToolResultCache(ReactiveRedisTemplate<String, String> redisTemplate,
+    public ToolResultCache(ReactiveStringRedisTemplate redisTemplate,
                             ObjectMapper objectMapper,
                             @Value("${mcp.gateway.cache.tool-result-ttl-seconds:120}") long ttlSeconds) {
         this.redisTemplate = redisTemplate;

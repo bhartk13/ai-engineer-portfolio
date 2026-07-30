@@ -63,6 +63,10 @@ mcp:
     rate-limit:
       requests-per-period: 100
       period-seconds: 60
+    kafka:
+      # Use replicas: 1 for local/docker-compose (single broker). Set to 3 in production MSK.
+      audit-topic-partitions: ${MCP_KAFKA_AUDIT_TOPIC_PARTITIONS:6}
+      audit-topic-replicas: ${MCP_KAFKA_AUDIT_TOPIC_REPLICAS:1}
     connectors:
       github:
         enabled: ${GITHUB_CONNECTOR_ENABLED:false}

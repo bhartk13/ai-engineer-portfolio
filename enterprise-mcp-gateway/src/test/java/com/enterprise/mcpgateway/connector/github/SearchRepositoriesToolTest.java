@@ -5,13 +5,11 @@ import com.enterprise.mcpgateway.mcp.tool.ToolResult;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
-import mockwebserver3.MockResponse;
-import mockwebserver3.MockWebServer;
-import mockwebserver3.junit5.internal.MockWebServerExtension;
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.test.StepVerifier;
 
@@ -64,11 +62,10 @@ class SearchRepositoriesToolTest {
 
     @Test
     void searchesRepositoriesSuccessfully() {
-        server.enqueue(new MockResponse.Builder()
-                .code(200)
+        server.enqueue(new MockResponse()
+                .setResponseCode(200)
                 .addHeader("Content-Type", "application/json")
-                .body("{\"total_count\":1,\"items\":[{\"full_name\":\"acme/widgets\"}]}")
-                .build());
+                .setBody("{\"total_count\":1,\"items\":[{\"full_name\":\"acme/widgets\"}]}"));
 
         JsonNode args = MAPPER.createObjectNode().put("query", "org:acme topic:widgets");
 
@@ -79,10 +76,9 @@ class SearchRepositoriesToolTest {
 
     @Test
     void mapsGitHubErrorResponsesToToolError() {
-        server.enqueue(new MockResponse.Builder()
-                .code(403)
-                .body("{\"message\":\"API rate limit exceeded\"}")
-                .build());
+        server.enqueue(new MockResponse()
+                .setResponseCode(403)
+                .setBody("{\"message\":\"API rate limit exceeded\"}"));
 
         JsonNode args = MAPPER.createObjectNode().put("query", "org:acme");
 
