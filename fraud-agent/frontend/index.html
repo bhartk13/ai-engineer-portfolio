@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Ledgerline — Investigation Console</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root{
+    --ink:#0c1210;
+    --paper:#0f1613;
+    --panel:#141d19;
+    --line:#26332c;
+    --amber:#e8a33d;
+    --amber-dim:#8a6a35;
+    --wire:#3fae7a;
+    --danger:#d1584a;
+    --text:#d9e0da;
+    --text-dim:#84968c;
+    --mono: 'IBM Plex Mono','SFMono-Regular',Consolas,monospace;
+    --sans: 'IBM Plex Sans', system-ui, sans-serif;
+  }
+  @font-face{font-family:'IBM Plex Mono';src:local('Menlo'),local('Consolas');}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ink);color:var(--text);font-family:var(--sans);}
+  .app{display:grid;grid-template-columns:280px 1fr 360px;grid-template-rows:56px 1fr;height:100vh;}
+  header{grid-column:1/4;display:flex;align-items:center;padding:0 20px;border-bottom:1px solid var(--line);background:var(--paper);}
+  header .brand{font-family:var(--mono);letter-spacing:.08em;color:var(--amber);font-size:14px;}
+  header .brand b{color:var(--text)}
+  header .tag{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--text-dim);border:1px solid var(--line);padding:4px 10px;border-radius:2px;}
+  .rail{border-right:1px solid var(--line);background:var(--paper);padding:16px;overflow-y:auto;}
+  .rail h3{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-dim);margin:18px 0 8px;}
+  .rail h3:first-child{margin-top:0}
+  .entity-row{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:4px;cursor:pointer;font-family:var(--mono);font-size:12px;border:1px solid transparent;}
+  .entity-row:hover{border-color:var(--line);background:var(--panel);}
+  .entity-row.active{border-color:var(--amber-dim);background:var(--panel);}
+  .risk{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .center{position:relative;overflow:hidden;background:
+    radial-gradient(circle at 20% 20%, rgba(63,174,122,0.05), transparent 40%),
+    var(--paper);}
+  svg{width:100%;height:100%;}
+  .node-label{font-family:var(--mono);font-size:10px;fill:var(--text-dim);pointer-events:none;}
+  .edge{stroke:var(--line);stroke-width:1.3;}
+  .edge.flagged{stroke:var(--danger);stroke-width:1.6;stroke-dasharray:3 3;}
+  .side{border-left:1px solid var(--line);background:var(--paper);display:flex;flex-direction:column;}
+  .chat-log{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;}
+  .msg{font-size:13px;line-height:1.5;padding:10px 12px;border-radius:6px;border:1px solid var(--line);}
+  .msg.user{background:var(--panel);align-self:flex-end;max-width:90%;}
+  .msg.agent{background:transparent;border-color:var(--amber-dim);}
+  .msg .role{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--amber);margin-bottom:6px;display:block;}
+  .trace{font-family:var(--mono);font-size:10.5px;color:var(--text-dim);margin-top:8px;border-top:1px dashed var(--line);padding-top:8px;}
+  .trace div{margin-bottom:3px;}
+  .composer{border-top:1px solid var(--line);padding:12px;display:flex;gap:8px;}
+  .composer input{flex:1;background:var(--ink);border:1px solid var(--line);color:var(--text);padding:10px 12px;border-radius:4px;font-family:var(--sans);font-size:13px;}
+  .composer button{background:var(--amber);color:#1a1206;border:none;padding:0 16px;border-radius:4px;font-weight:600;cursor:pointer;font-size:13px;}
+  .composer button:disabled{opacity:.4;cursor:default;}
+  .badge{font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:2px;}
+  .badge.high{background:rgba(209,88,74,.15);color:var(--danger);}
+  .badge.med{background:rgba(232,163,61,.15);color:var(--amber);}
+  .badge.low{background:rgba(63,174,122,.15);color:var(--wire);}
+  #role-select{font-family:var(--mono);font-size:11px;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:2px;padding:3px 6px;margin-left:10px;}
+  ::-webkit-scrollbar{width:8px}
+  ::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">LEDGERLINE <b>· investigation console</b></div>
+    <select id="role-select">
+      <option value="analyst-1">analyst-1 (analyst)</option>
+      <option value="senior-1">senior-1 (senior investigator)</option>
+      <option value="viewer-1">viewer-1 (viewer)</option>
+    </select>
+    <div class="tag" id="mode-tag">mode: —</div>
+  </header>
+
+  <div class="rail">
+    <h3>High-risk entities</h3>
+    <div id="entity-list">loading…</div>
+  </div>
+
+  <div class="center">
+    <svg id="graph"></svg>
+  </div>
+
+  <div class="side">
+    <div class="chat-log" id="chat-log">
+      <div class="msg agent"><span class="role">agent</span>Ask about a case — e.g. "Why are Shelby Holdings and Northgate Trading connected?"</div>
+    </div>
+    <div class="composer">
+      <input id="chat-input" placeholder="Ask the investigation agent…" />
+      <button id="chat-send">Send</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = "http://localhost:8123";
+let graphData = {nodes:[], edges:[]};
+
+function riskClass(score){ return score >= 0.5 ? 'high' : score >= 0.3 ? 'med' : 'low'; }
+function riskColor(score){ return score >= 0.5 ? 'var(--danger)' : score >= 0.3 ? 'var(--amber)' : 'var(--wire)'; }
+
+async function loadGraph(){
+  const res = await fetch(`${API}/graph`);
+  graphData = await res.json();
+  renderEntityList();
+  renderGraph();
+}
+
+function renderEntityList(){
+  const list = document.getElementById('entity-list');
+  const sorted = [...graphData.nodes].sort((a,b)=>(b.risk_score||0)-(a.risk_score||0));
+  list.innerHTML = sorted.map(n => `
+    <div class="entity-row">
+      <span>${n.name || n.id}</span>
+      <span class="badge ${riskClass(n.risk_score||0)}">${(n.risk_score??0).toFixed(2)}</span>
+    </div>`).join('');
+}
+
+function renderGraph(){
+  const svg = document.getElementById('graph');
+  const w = svg.clientWidth, h = svg.clientHeight;
+  const cx = w/2, cy = h/2, r = Math.min(w,h)/2 - 60;
+  const nodes = graphData.nodes;
+  const angleStep = (2*Math.PI) / nodes.length;
+  const pos = {};
+  nodes.forEach((n,i) => {
+    pos[n.id] = { x: cx + r*Math.cos(i*angleStep - Math.PI/2), y: cy + r*Math.sin(i*angleStep - Math.PI/2) };
+  });
+
+  let edgesSvg = graphData.edges.map(e => {
+    const a = pos[e.source], b = pos[e.target];
+    if(!a || !b) return '';
+    const cls = e.flagged ? 'edge flagged' : 'edge';
+    return `<line class="${cls}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"></line>`;
+  }).join('');
+
+  let nodesSvg = nodes.map(n => {
+    const p = pos[n.id];
+    const color = riskColor(n.risk_score||0);
+    return `
+      <g>
+        <circle cx="${p.x}" cy="${p.y}" r="7" fill="${color}" opacity="0.9" stroke="var(--ink)" stroke-width="1.5"/>
+        <text class="node-label" x="${p.x}" y="${p.y - 12}" text-anchor="middle">${(n.name||n.id).slice(0,18)}</text>
+      </g>`;
+  }).join('');
+
+  svg.innerHTML = edgesSvg + nodesSvg;
+}
+
+function currentUser(){ return document.getElementById('role-select').value; }
+
+function appendMsg(role, html){
+  const log = document.getElementById('chat-log');
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  div.innerHTML = `<span class="role">${role}</span>${html}`;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+  return div;
+}
+
+async function sendMessage(){
+  const input = document.getElementById('chat-input');
+  const btn = document.getElementById('chat-send');
+  const text = input.value.trim();
+  if(!text) return;
+  appendMsg('user', text);
+  input.value = '';
+  btn.disabled = true;
+  try{
+    const res = await fetch(`${API}/investigate`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json', 'x-user-id': currentUser()},
+      body: JSON.stringify({message: text, session_id: 'console'})
+    });
+    if(!res.ok){
+      const err = await res.json().catch(()=>({detail:res.statusText}));
+      appendMsg('agent', `<span style="color:var(--danger)">Denied: ${err.detail || res.statusText}</span>`);
+      return;
+    }
+    const data = await res.json();
+    document.getElementById('mode-tag').textContent = `mode: ${data.mode || 'live'}`;
+    const traceHtml = (data.trace||[]).map(t => `<div>→ ${t.tool}(${JSON.stringify(t.input)})</div>`).join('');
+    appendMsg('agent', `${data.answer.replace(/\n/g,'<br>')}<div class="trace">${traceHtml}</div>`);
+  }catch(e){
+    appendMsg('agent', `<span style="color:var(--danger)">Connection error — is the API running on :8123?</span>`);
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+document.getElementById('chat-send').addEventListener('click', sendMessage);
+document.getElementById('chat-input').addEventListener('keydown', e => { if(e.key==='Enter') sendMessage(); });
+window.addEventListener('resize', renderGraph);
+loadGraph();
+</script>
+</body>
+</html>

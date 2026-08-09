@@ -1,0 +1,29 @@
+{
+  "entities": [
+    {"id": "acct_1001", "type": "account", "name": "J. Alvarez Checking", "risk_score": 0.2, "opened": "2021-03-01", "country": "US"},
+    {"id": "acct_1002", "type": "account", "name": "Shelby Holdings LLC", "risk_score": 0.7, "opened": "2024-11-02", "country": "PA"},
+    {"id": "acct_1003", "type": "account", "name": "M. Chen Savings", "risk_score": 0.1, "opened": "2019-07-14", "country": "US"},
+    {"id": "acct_1004", "type": "account", "name": "Northgate Trading Co", "risk_score": 0.65, "opened": "2024-12-19", "country": "AE"},
+    {"id": "acct_1005", "type": "account", "name": "R. Novak Checking", "risk_score": 0.15, "opened": "2020-01-22", "country": "US"},
+    {"id": "device_88", "type": "device", "name": "Device fp:8831ac", "risk_score": 0.55, "country": "unknown"},
+    {"id": "ip_204", "type": "ip", "name": "203.0.113.204", "risk_score": 0.6, "country": "RO"},
+    {"id": "merchant_77", "type": "merchant", "name": "QuickCash Kiosk #77", "risk_score": 0.4, "country": "US"}
+  ],
+  "relationships": [
+    {"source": "acct_1001", "target": "acct_1002", "type": "wire_transfer", "amount": 9800, "date": "2026-07-02", "flagged": true},
+    {"source": "acct_1002", "target": "acct_1004", "type": "wire_transfer", "amount": 9700, "date": "2026-07-03", "flagged": true},
+    {"source": "acct_1003", "target": "acct_1002", "type": "wire_transfer", "amount": 9600, "date": "2026-07-02", "flagged": true},
+    {"source": "acct_1005", "target": "acct_1002", "type": "wire_transfer", "amount": 9500, "date": "2026-07-04", "flagged": true},
+    {"source": "acct_1002", "target": "device_88", "type": "logged_in_from", "date": "2026-07-01", "flagged": false},
+    {"source": "acct_1004", "target": "device_88", "type": "logged_in_from", "date": "2026-07-03", "flagged": true},
+    {"source": "acct_1002", "target": "ip_204", "type": "session_ip", "date": "2026-07-01", "flagged": true},
+    {"source": "acct_1004", "target": "ip_204", "type": "session_ip", "date": "2026-07-03", "flagged": true},
+    {"source": "acct_1001", "target": "merchant_77", "type": "cash_withdrawal", "amount": 400, "date": "2026-06-20", "flagged": false}
+  ],
+  "case_notes": [
+    {"id": "note_1", "entity_id": "acct_1002", "text": "Shelby Holdings LLC opened 8 months ago with minimal KYC documentation. Receives multiple round-number wires just under the $10,000 CTR threshold from unrelated personal accounts, then forwards funds onward within 24 hours. Pattern is consistent with structuring and layering."},
+    {"id": "note_2", "entity_id": "device_88", "text": "Device fingerprint 8831ac has been used to access both Shelby Holdings LLC and Northgate Trading Co accounts, which have no other apparent relationship. Shared device access across unrelated business accounts is a strong indicator of common control or account takeover."},
+    {"id": "note_3", "entity_id": "acct_1004", "text": "Northgate Trading Co was opened in December with a UAE-registered address and received an incoming wire from Shelby Holdings LLC one day after Shelby received three structured deposits."},
+    {"id": "note_4", "entity_id": "acct_1001", "text": "J. Alvarez Checking has a long, unremarkable transaction history except for one $9,800 outbound wire to Shelby Holdings, which is inconsistent with the account's normal spending pattern."}
+  ]
+}
