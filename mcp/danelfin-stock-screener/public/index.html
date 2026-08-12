@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Danelfin Stock Screener</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">◆</span>
+        <div>
+          <h1>Stock Screener</h1>
+          <p class="subtitle">AI Scores powered by Danelfin (MCP)</p>
+        </div>
+      </div>
+      <div class="mcp-status" id="mcpStatus">
+        <span class="dot" id="mcpDot"></span>
+        <span id="mcpStatusText">Checking Danelfin connection…</span>
+      </div>
+    </header>
+
+    <main class="layout">
+      <div class="main-col">
+
+        <section class="card" id="portfolioSection">
+          <div class="card-header">
+            <h2>Portfolio</h2>
+            <button class="btn btn-primary" id="addHoldingBtn">+ Add stock</button>
+          </div>
+
+          <form id="addHoldingForm" class="add-form hidden">
+            <input type="text" id="fTicker" placeholder="Ticker (e.g. AAPL)" required maxlength="8" />
+            <input type="number" id="fShares" placeholder="Shares (optional)" step="any" min="0" />
+            <input type="number" id="fCost" placeholder="Cost basis / share (optional)" step="any" min="0" />
+            <input type="text" id="fNotes" placeholder="Notes (optional)" />
+            <div class="add-form-actions">
+              <button type="submit" class="btn btn-primary">Save</button>
+              <button type="button" class="btn btn-ghost" id="cancelAddBtn">Cancel</button>
+            </div>
+          </form>
+
+          <div id="portfolioTableWrap">
+            <table class="table" id="portfolioTable">
+              <thead>
+                <tr>
+                  <th>Ticker</th>
+                  <th>AI Score</th>
+                  <th>Fundamental</th>
+                  <th>Technical</th>
+                  <th>Sentiment</th>
+                  <th>Shares</th>
+                  <th>Cost / share</th>
+                  <th>Notes</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="portfolioBody">
+                <tr><td colspan="9" class="empty-row">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card" id="top10Section">
+          <div class="card-header">
+            <h2>Top 10 US Stocks</h2>
+            <button class="btn btn-ghost" id="refreshTop10Btn">↻ Refresh</button>
+          </div>
+          <p class="hint" id="top10Hint">Ranked live by Danelfin AI Score.</p>
+          <table class="table" id="top10Table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Ticker</th>
+                <th>AI Score</th>
+                <th>Fundamental</th>
+                <th>Technical</th>
+                <th>Sentiment</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="top10Body">
+              <tr><td colspan="7" class="empty-row">Loading…</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+      </div>
+
+      <aside class="chat-col">
+        <div class="card chat-card">
+          <div class="card-header">
+            <h2>Chatbot</h2>
+          </div>
+          <div class="chat-messages" id="chatMessages"></div>
+          <form class="chat-input-row" id="chatForm">
+            <input type="text" id="chatInput" placeholder='Try "score AAPL" or "add TSLA to portfolio"' autocomplete="off" />
+            <button type="submit" class="btn btn-primary">Send</button>
+          </form>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

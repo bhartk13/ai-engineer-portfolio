@@ -1,0 +1,24 @@
+{
+  "name": "danelfin-stock-screener",
+  "version": "1.0.0",
+  "description": "Simple stock screener with portfolio tracking, Top 10 US stocks, and a chatbot, powered by Danelfin AI Scores via MCP.",
+  "type": "module",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "probe": "node probe.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "nanoid": "^6.0.1",
+    "pg": "^8.23.0"
+  }
+}

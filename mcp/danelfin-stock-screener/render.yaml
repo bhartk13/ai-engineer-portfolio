@@ -1,0 +1,25 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+#
+# Deploy: push this repo to GitHub, then in the Render dashboard choose
+# "New +" -> "Blueprint" and point it at the repo. Render will read this
+# file and provision the web service below, prompting you to fill in the
+# two secret env vars (DANELFIN_API_KEY, DATABASE_URL) since they're marked
+# `sync: false`.
+#
+# You can also skip this file entirely and create the web service manually:
+# Build command `npm install`, start command `npm start`, Node runtime.
+
+services:
+  - type: web
+    name: danelfin-stock-screener
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: DANELFIN_API_KEY
+        sync: false
+      - key: DANELFIN_MCP_URL
+        value: https://mcp.danelfin.com/mcp
+      - key: DATABASE_URL
+        sync: false
