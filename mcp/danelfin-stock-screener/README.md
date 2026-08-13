@@ -27,6 +27,13 @@ cd danelfin-stock-screener
 npm install
 ```
 
+Your API key has already been filled into `.env` for you:
+
+```
+PORT=3787
+DANELFIN_API_KEY=your key here
+DANELFIN_MCP_URL=https://mcp.danelfin.com/mcp
+```
 
 If you ever need to rotate the key, just edit `.env` (never commit this file — it's already git-ignored). `.env.example` is a blank template if you want to hand this project to someone else.
 
@@ -63,7 +70,7 @@ If instead you see a connection warning, double-check your API key and that your
 
 ### Top 10 US Stocks
 
-Danelfin's docs point to `get_stock_score` as the primary tool. The app first checks whether your account's MCP server *also* exposes a dedicated screener/ranking tool (anything named like `top_stocks`, `screener`, `ranking`, etc.) and uses it if found. Otherwise, it falls back to scoring a fixed list of ~40 large-cap US tickers (see `server/universe.js` — feel free to edit this list) and ranking them by AI Score. Results are cached for 15 minutes; click **↻ Refresh** to force a re-fetch.
+Danelfin's MCP server exposes two ranking tools beyond `get_stock_score`: `get_top_ranked(market, n, min_score)` and `get_best_stocks()`. The app tries `get_top_ranked` first (asking for `market: "us_stocks", n: 10`), falls back to `get_best_stocks` if that's unavailable, and only as a last resort falls back to scoring a fixed list of ~40 large-cap US tickers itself (see `server/universe.js`) and ranking them by AI Score. Results are cached for 15 minutes (a failed/empty fetch is never cached, so a transient error doesn't lock the section empty); click **↻ Refresh** to force a re-fetch. The JSON response includes a `source` field (`danelfin_ranked` or `universe_fallback`) if you want to confirm which path served a given result — check `/api/top10`.
 
 ### Chatbot
 

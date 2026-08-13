@@ -159,56 +159,67 @@ export async function getStockScore(ticker) {
   return normalizeScore(ticker, data);
 }
 
-/** Best-effort normalization of whatever shape Danelfin sends back. */
-function normalizeScore(ticker, data) {
-  const flat = Array.isArray(data) ? data[0] || {} : data || {};
+/** Pulls AI Score + sub-scores out of whatever flat object Danelfin sends back. */
+function extractScoreFields(flat) {
   const findNumeric = (patterns) => {
     for (const [key, value] of Object.entries(flat)) {
       if (
         patterns.some((p) => key.toLowerCase().includes(p)) &&
         (typeof value === "number" || !Number.isNaN(Number(value)))
       ) {
-        return Number(value);
+        // Round to 1 decimal — avoids float noise like 7.300000000000001
+        // from arithmetic on the sending side.
+        return Math.round(Number(value) * 10) / 10;
       }
     }
     return null;
   };
 
-  const aiScore =
-    findNumeric(["ai_score", "aiscore"]) ?? findNumeric(["score"]) ?? null;
-  const fundamental = findNumeric(["fundamental"]);
-  const technical = findNumeric(["technical"]);
-  const sentiment = findNumeric(["sentiment"]);
-  const lowRisk = findNumeric(["low_risk", "risk"]);
+  return {
+    aiScore: findNumeric(["ai_score", "aiscore"]) ?? findNumeric(["score"]) ?? null,
+    fundamental: findNumeric(["fundamental"]),
+    technical: findNumeric(["technical"]),
+    sentiment: findNumeric(["sentiment"]),
+    lowRisk: findNumeric(["low_risk", "risk"]),
+  };
+}
 
+/** Best-effort normalization of whatever shape Danelfin sends back. */
+function normalizeScore(ticker, data) {
+  const flat = Array.isArray(data) ? data[0] || {} : data || {};
   return {
     ticker: ticker.toUpperCase(),
-    aiScore,
-    fundamental,
-    technical,
-    sentiment,
-    lowRisk,
+    ...extractScoreFields(flat),
     raw: flat,
     fetchedAt: new Date().toISOString(),
   };
 }
 
-/** Runs getStockScore over a list of tickers with limited concurrency. */
-export async function getStockScoresBulk(tickers, { concurrency = 4 } = {}) {
+/** Runs getStockScore over a list of tickers with limited concurrency and a
+ *  light retry, since a burst of concurrent calls against Danelfin can hit
+ *  transient rate limiting even when a single call succeeds fine. */
+export async function getStockScoresBulk(tickers, { concurrency = 3 } = {}) {
   const results = [];
   let i = 0;
+  async function callWithRetry(ticker) {
+    try {
+      return await getStockScore(ticker);
+    } catch (err) {
+      await new Promise((r) => setTimeout(r, 400));
+      try {
+        return await getStockScore(ticker);
+      } catch (err2) {
+        return {
+          ticker: ticker.toUpperCase(),
+          error: err2.message || String(err2),
+        };
+      }
+    }
+  }
   async function worker() {
     while (i < tickers.length) {
       const idx = i++;
-      const ticker = tickers[idx];
-      try {
-        results[idx] = await getStockScore(ticker);
-      } catch (err) {
-        results[idx] = {
-          ticker: ticker.toUpperCase(),
-          error: err.message || String(err),
-        };
-      }
+      results[idx] = await callWithRetry(tickers[idx]);
     }
   }
   const workers = Array.from(
@@ -219,14 +230,99 @@ export async function getStockScoresBulk(tickers, { concurrency = 4 } = {}) {
   return results;
 }
 
+// Danelfin's actual "give me a ranked list" tools, in priority order. We
+// discovered these by calling GET /api/mcp/tools against a live server —
+// get_top_ranked takes market/n/min_score directly, which is exactly what
+// "Top 10 US Stocks" needs, and is a single call instead of scoring dozens
+// of tickers ourselves.
+const KNOWN_RANKING_TOOLS = [
+  {
+    match: (name) => name === "get_top_ranked",
+    buildArgs: ({ market, limit }) => ({ market, n: limit, min_score: 1 }),
+  },
+  {
+    match: (name) => name === "get_best_stocks",
+    buildArgs: () => ({}),
+  },
+];
+
+/** Pulls an array of per-stock entries out of whatever wrapper shape a
+ *  ranking/screener tool returns (bare array, {results:[...]}, {stocks:[...]}, etc). */
+function extractListItems(raw) {
+  if (Array.isArray(raw)) return raw;
+  if (!raw || typeof raw !== "object") return [];
+  const candidates = [
+    "results",
+    "stocks",
+    "data",
+    "items",
+    "rankings",
+    "ranked",
+    "tickers",
+    "top",
+    "list",
+  ];
+  for (const key of candidates) {
+    if (Array.isArray(raw[key])) return raw[key];
+  }
+  return [];
+}
+
+function normalizeRankedItem(item) {
+  if (!item || typeof item !== "object") return null;
+  const tickerRaw = item.ticker || item.symbol || item.stock || item.stock_ticker || item.code;
+  if (!tickerRaw) return null;
+  return {
+    ticker: String(tickerRaw).toUpperCase(),
+    ...extractScoreFields(item),
+    raw: item,
+    fetchedAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Tries Danelfin's own ranking tools (get_top_ranked, then get_best_stocks)
+ * for the "Top 10 US Stocks" section. Returns an array on success (possibly
+ * still needing a slice/sort by caller), or null if no native tool worked —
+ * signalling the caller should fall back to scoring a fixed universe itself
+ * via getStockScoresBulk.
+ */
+export async function getNativeTopStocks({ market = "us_stocks", limit = 10 } = {}) {
+  const tools = await listDanelfinTools();
+
+  for (const candidate of KNOWN_RANKING_TOOLS) {
+    const tool = tools.find((t) => candidate.match(t.name));
+    if (!tool) continue;
+
+    try {
+      const raw = await callTool(tool.name, candidate.buildArgs({ market, limit }));
+      const items = extractListItems(raw)
+        .map(normalizeRankedItem)
+        .filter((s) => s && s.aiScore != null);
+
+      if (items.length) {
+        log(`Top stocks via native tool "${tool.name}": ${items.length} results`);
+        return items.sort((a, b) => b.aiScore - a.aiScore).slice(0, limit);
+      }
+      log(`Native tool "${tool.name}" returned no usable items, trying next option`);
+    } catch (err) {
+      log(`Native tool "${tool.name}" failed:`, err.message);
+    }
+  }
+
+  return null;
+}
+
 /**
  * If Danelfin exposes a dedicated "top stocks" / screener / ranking tool,
  * use it directly. Returns null if nothing matching is found, so callers
- * can fall back to scoring a fixed universe themselves.
+ * can fall back to scoring a fixed universe themselves. Kept as a looser
+ * discovery fallback for forward-compatibility; getNativeTopStocks (which
+ * knows the real tool names) is tried first.
  */
 export async function findTopStocksTool() {
   return findTool(
-    (t) => /top.*stock|screener|ranking|rank.*stock|best.*stock/i.test(t.name)
+    (t) => /top.?rank|screener|ranking|ranked|rank.*stock|best.*stock/i.test(t.name)
   );
 }
 

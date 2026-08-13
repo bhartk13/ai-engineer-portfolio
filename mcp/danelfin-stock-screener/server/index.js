@@ -7,8 +7,7 @@ import {
   getStockScore,
   getStockScoresBulk,
   listDanelfinTools,
-  findTopStocksTool,
-  callTool,
+  getNativeTopStocks,
 } from "./mcpClient.js";
 import {
   addHolding,
@@ -67,33 +66,48 @@ const TOP10_TTL_MS = 15 * 60 * 1000; // 15 minutes
 app.get("/api/top10", async (req, res) => {
   const force = req.query.refresh === "1";
   const fresh = Date.now() - top10Cache.fetchedAt < TOP10_TTL_MS;
-  if (!force && fresh && top10Cache.data) {
-    return res.json({ stocks: top10Cache.data, cached: true });
+  if (!force && fresh && top10Cache.data && top10Cache.data.length) {
+    return res.json({ stocks: top10Cache.data, cached: true, source: top10Cache.source });
   }
 
   try {
-    // Prefer a native Danelfin screener/ranking tool if one exists.
-    const topTool = await findTopStocksTool();
-    let stocks;
+    // Prefer Danelfin's own ranking tool (get_top_ranked / get_best_stocks) —
+    // one call, server-side ranked, no rate-limit risk.
+    let stocks = await getNativeTopStocks({ market: "us_stocks", limit: 10 });
+    let source = "danelfin_ranked";
 
-    if (topTool) {
-      const raw = await callTool(topTool.name, { market: "US", limit: 10 });
-      const list = Array.isArray(raw) ? raw : raw?.stocks || raw?.data || [];
-      stocks = list.slice(0, 10);
-    } else {
-      // Fall back to scoring a fixed universe of large-cap US stocks and
-      // ranking by AI Score ourselves.
+    if (!stocks) {
+      // No native ranking tool available on this account — fall back to
+      // scoring a fixed universe of large-cap US stocks ourselves.
       const scored = await getStockScoresBulk(US_STOCK_UNIVERSE, {
-        concurrency: 5,
+        concurrency: 3,
       });
+      const failed = scored.filter((s) => s.error);
+      if (failed.length) {
+        console.warn(
+          `[top10] ${failed.length}/${scored.length} tickers failed, e.g.:`,
+          failed[0].error
+        );
+      }
       stocks = scored
         .filter((s) => !s.error && s.aiScore != null)
         .sort((a, b) => b.aiScore - a.aiScore)
         .slice(0, 10);
+      source = "universe_fallback";
     }
 
-    top10Cache = { data: stocks, fetchedAt: Date.now() };
-    res.json({ stocks, cached: false });
+    if (!stocks.length) {
+      // Don't cache an empty result — that would lock the section empty for
+      // the full TTL after a transient failure. Surface the problem instead
+      // so the next request/refresh actually retries.
+      return res.status(502).json({
+        error:
+          "Danelfin didn't return any usable scores just now (possibly rate limiting or a transient error). Try refreshing in a moment.",
+      });
+    }
+
+    top10Cache = { data: stocks, fetchedAt: Date.now(), source };
+    res.json({ stocks, cached: false, source });
   } catch (err) {
     res.status(502).json({ error: err.message });
   }
@@ -109,7 +123,7 @@ app.get("/api/portfolio", async (req, res) => {
   if (req.query.withScores === "1") {
     const scores = await getStockScoresBulk(
       holdings.map((h) => h.ticker),
-      { concurrency: 5 }
+      { concurrency: 3 }
     );
     const byTicker = Object.fromEntries(scores.map((s) => [s.ticker, s]));
     const enriched = holdings.map((h) => ({ ...h, score: byTicker[h.ticker] }));
