@@ -1,0 +1,10 @@
+{
+  "name": "PrepMe",
+  "short_name": "PrepMe",
+  "description": "Practice the interview for the job you are applying to.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f3efe6",
+  "theme_color": "#1c1915",
+  "lang": "en"
+}
