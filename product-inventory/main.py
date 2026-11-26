@@ -83,6 +83,14 @@ class SkuUpdate(BaseModel):
     quantity: Optional[int] = Field(default=None, ge=0)
 
 
+class OfferingTreeIn(OfferingIn):
+    skus: list[SkuIn] = []
+
+
+class ProductTreeIn(ProductIn):
+    offerings: list[OfferingTreeIn] = []
+
+
 def _changes(body: BaseModel):
     """Only the fields the caller actually sent."""
     return body.model_dump(exclude_unset=True, exclude_none=True)
@@ -93,6 +101,16 @@ def _changes(body: BaseModel):
 @app.post("/products", status_code=201, tags=["products"])
 def create_product(body: ProductIn):
     return service.create("products", body.model_dump())
+
+
+@app.post("/products/bulk", status_code=201, tags=["products"])
+def create_product_bulk(body: ProductTreeIn | list[ProductTreeIn]):
+    """Create one product, or a list of them, each with nested offerings and
+    SKUs, in a single transaction. If anything is invalid or a duplicate,
+    nothing is saved. Returns the created tree(s)."""
+    if isinstance(body, list):
+        return service.create_trees([p.model_dump() for p in body])
+    return service.create_tree(body.model_dump())
 
 
 @app.get("/products", tags=["products"])

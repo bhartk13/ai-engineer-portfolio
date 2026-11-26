@@ -83,6 +83,9 @@ def connect():
     try:
         yield conn
         conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         conn.close()
 
@@ -169,23 +172,90 @@ def _run(conn, sql, params):
 
 # ---------- CRUD ----------
 
-def create(entity, data, parent_id=None):
+def _insert(conn, entity, data, parent_id=None):
+    """Validate and insert one record on an open connection; returns its id.
+    Shared by create() and create_tree() so both apply the same rules."""
     spec = _spec(entity)
     row = dict(_clean(entity, data, creating=True))
+    if spec["parent"]:
+        parent_table, parent_column = spec["parent"]
+        if parent_id is None:
+            raise Invalid(f"{entity} need a parent_id (an id from {parent_table})")
+        if not conn.execute(f"SELECT 1 FROM {parent_table} WHERE id = ?", (parent_id,)).fetchone():
+            raise NotFound(f"no {parent_table} record with id {parent_id}")
+        row[parent_column] = parent_id
+    _check_unique(conn, entity, row)
+    columns = ", ".join(row)
+    marks = ", ".join("?" for _ in row)
+    cursor = _run(conn, f"INSERT INTO {entity} ({columns}) VALUES ({marks})", list(row.values()))
+    return cursor.lastrowid
+
+
+def create(entity, data, parent_id=None):
     with connect() as conn:
-        if spec["parent"]:
-            parent_table, parent_column = spec["parent"]
-            if parent_id is None:
-                raise Invalid(f"{entity} need a parent_id (an id from {parent_table})")
-            if not conn.execute(f"SELECT 1 FROM {parent_table} WHERE id = ?", (parent_id,)).fetchone():
-                raise NotFound(f"no {parent_table} record with id {parent_id}")
-            row[parent_column] = parent_id
-        _check_unique(conn, entity, row)
-        columns = ", ".join(row)
-        marks = ", ".join("?" for _ in row)
-        cursor = _run(conn, f"INSERT INTO {entity} ({columns}) VALUES ({marks})", list(row.values()))
-        new_id = cursor.lastrowid
+        new_id = _insert(conn, entity, data, parent_id)
     return get(entity, new_id)
+
+
+def create_tree(data):
+    """Create a product with its offerings and their SKUs in one transaction.
+
+    data = {"name": ..., "description": ...,
+            "offerings": [{"name": ..., "description": ...,
+                           "skus": [{"sku_code": ..., "price": ..., "quantity": ...}]}]}
+
+    All-or-nothing: if any record is invalid or duplicates an existing one
+    (or another record in the same request), nothing is saved and the error
+    names the record that failed. Returns the new product as tree() does."""
+    with connect() as conn:
+        product_id = _insert_tree(conn, data)
+    return tree(product_id)
+
+
+def create_trees(items):
+    """create_tree for a list of products, all in one transaction: if any
+    product fails, none of them are saved. Errors are prefixed with the
+    index of the failing product, e.g. '[1].offerings[0]: ...'."""
+    if not isinstance(items, list):
+        raise Invalid("data must be a list of products")
+    with connect() as conn:
+        ids = []
+        for i, item in enumerate(items):
+            try:
+                ids.append(_insert_tree(conn, item))
+            except (Invalid, Conflict, NotFound) as exc:
+                raise type(exc)(f"[{i}]: {exc}") from None
+    return [tree(i) for i in ids]
+
+
+def _insert_tree(conn, data):
+    """Insert one product tree on an open connection; returns the product id."""
+    if not isinstance(data, dict):
+        raise Invalid("data must be an object describing a product")
+    product = dict(data)
+    offerings = product.pop("offerings", [])
+    if not isinstance(offerings, list):
+        raise Invalid("'offerings' must be a list")
+    product_id = _insert(conn, "products", product)
+    for i, offering in enumerate(offerings):
+        if not isinstance(offering, dict):
+            raise Invalid(f"offerings[{i}] must be an object")
+        offering = dict(offering)
+        skus = offering.pop("skus", [])
+        if not isinstance(skus, list):
+            raise Invalid(f"offerings[{i}].skus must be a list")
+        try:
+            offering_id = _insert(conn, "offerings", offering, product_id)
+        except (Invalid, Conflict, NotFound) as exc:
+            raise type(exc)(f"offerings[{i}]: {exc}") from None
+        for j, sku in enumerate(skus):
+            if not isinstance(sku, dict):
+                raise Invalid(f"offerings[{i}].skus[{j}] must be an object")
+            try:
+                _insert(conn, "skus", sku, offering_id)
+            except (Invalid, Conflict, NotFound) as exc:
+                raise type(exc)(f"offerings[{i}].skus[{j}]: {exc}") from None
+    return product_id
 
 
 def get(entity, record_id):

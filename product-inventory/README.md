@@ -84,7 +84,25 @@ curl "localhost:8000/reports/low-stock?threshold=10"
 | Update | `PATCH /products/{id}` | `PATCH /offerings/{id}` | `PATCH /skus/{id}` |
 | Delete | `DELETE /products/{id}` | `DELETE /offerings/{id}` | `DELETE /skus/{id}` |
 
-Also: `GET /products/{id}/tree` and `GET /reports/low-stock?threshold=10`.
+Also: `GET /products/{id}/tree`, `GET /reports/low-stock?threshold=10`, and
+`POST /products/bulk`, which creates a product with its offerings and SKUs in
+one call and one transaction. The body is a product with a nested `offerings`
+list, each with a nested `skus` list (or a list of such products). If any
+record is invalid or a duplicate, nothing is saved and the error says which
+record failed, for example `offerings[0].skus[1]: a sku with sku_code ... already exists`.
+
+```bash
+curl -X POST localhost:8000/products/bulk -H "Content-Type: application/json" -d '{
+  "name": "Laptop", "description": "Portable computers",
+  "offerings": [
+    {"name": "Pro", "skus": [
+      {"sku_code": "LT-PRO-16GB-ANNUAL", "price": 1500, "quantity": 12},
+      {"sku_code": "LT-PRO-32GB-ANNUAL", "price": 1900, "quantity": 8}]},
+    {"name": "Air", "skus": [
+      {"sku_code": "LT-AIR-8GB-ANNUAL", "price": 900, "quantity": 20}]}
+  ]
+}'
+```
 
 Also `POST /chat` for the assistant (Part 2).
 
