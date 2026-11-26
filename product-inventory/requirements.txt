@@ -1,0 +1,7 @@
+# The CRUD app
+fastapi>=0.110
+uvicorn>=0.29
+
+# Only needed for the agent layer (agents.py)
+anthropic>=0.40
+python-dotenv>=1.0

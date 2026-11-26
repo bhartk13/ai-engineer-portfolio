@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Product Inventory</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --panel: #ffffff;
+    --line: #dde1e6;
+    --text: #1b1f24;
+    --muted: #697180;
+    --accent: #2563eb;
+    --accent-ink: #ffffff;
+    --selected: #eaf1ff;
+    --error: #b42318;
+    --error-bg: #fef3f2;
+    --ok: #067647;
+    --ok-bg: #ecfdf3;
+    --warn: #b54708;
+    --warn-bg: #fffaeb;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; display: flex; flex-direction: column; }
+  header, .banner { flex-shrink: 0; }
+
+  header { display: flex; align-items: baseline; gap: 14px; padding: 14px 20px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  header h1 { margin: 0; font-size: 16px; font-weight: 600; }
+  header .hint { color: var(--muted); font-size: 13px; }
+  header a { margin-left: auto; color: var(--muted); font-size: 13px; text-decoration: none; }
+  header a:hover { color: var(--accent); }
+
+  /* The page itself never scrolls on wide screens: main takes the height left under the header,
+     and each list and the chat scroll inside their own panel. */
+  main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(340px, 400px); gap: 0 24px; padding: 16px 20px; }
+  .inventory { display: grid; grid-template-columns: repeat(3, minmax(220px, 1fr)); grid-template-rows: auto minmax(0, 1fr); gap: 16px; min-height: 0; }
+  .caption { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+  .caption .sub { text-transform: none; letter-spacing: 0; font-weight: 400; }
+  .assistant-wrap { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 16px; border-left: 1px solid var(--line); padding-left: 24px; min-height: 0; }
+  @media (max-width: 1240px) {
+    /* stacked: let the page scroll, give the panels a sensible height so their lists and the chat still scroll inside */
+    body { display: block; height: auto; }
+    main { grid-template-columns: 1fr; gap: 24px 0; }
+    .panel { height: 520px; }
+    .assistant-wrap { border-left: 0; padding-left: 0; border-top: 1px solid var(--line); padding-top: 20px; }
+    .assistant { height: 70vh; min-height: 420px; }
+  }
+  @media (max-width: 900px) { .inventory { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; display: flex; flex-direction: column; min-height: 0; }
+  .panel-head { padding: 12px 14px; border-bottom: 1px solid var(--line); }
+  .panel-head h2 { margin: 0; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .panel-head .context { margin-top: 4px; font-size: 13px; color: var(--text); min-height: 18px; }
+  .panel-head .context:empty::before { content: "\00a0"; }
+
+  .list { flex: 1; overflow-y: auto; padding: 6px; }
+  .empty { padding: 20px 10px; color: var(--muted); text-align: center; font-size: 13px; }
+  .row { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 9px 10px; border: 1px solid transparent; border-radius: 6px; background: none; color: inherit; font: inherit; cursor: pointer; }
+  .row:hover { background: #f2f4f7; }
+  .row.selected { background: var(--selected); border-color: #bfd3ff; }
+  .row .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .sub { display: block; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
+  .row .id { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .row .chev { color: var(--muted); }
+  .row.static { cursor: default; }
+  .row.static:hover { background: none; }
+  .code { font-family: var(--mono); font-size: 13px; }
+  .num { font-family: var(--mono); font-size: 12px; text-align: right; white-space: nowrap; }
+  .num small { color: var(--muted); font-family: var(--sans); font-size: 11px; display: block; }
+  .pill { font-size: 11px; padding: 1px 6px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); }
+
+  form { border-top: 1px solid var(--line); padding: 12px 14px 14px; display: grid; gap: 8px; }
+  form h3 { margin: 0 0 2px; font-size: 13px; font-weight: 600; }
+  label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+  input { font: inherit; font-size: 14px; color: var(--text); padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; background: #fff; width: 100%; }
+  input:focus { outline: 2px solid #bfd3ff; outline-offset: 0; border-color: var(--accent); }
+  input:disabled { background: #f2f4f7; color: var(--muted); }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .actions { display: flex; align-items: center; gap: 10px; margin-top: 2px; }
+  button[type=submit] { font: inherit; font-weight: 600; padding: 8px 14px; border: 0; border-radius: 6px; background: var(--accent); color: var(--accent-ink); cursor: pointer; }
+  button[type=submit]:hover { filter: brightness(.95); }
+  button[type=submit]:disabled { background: #c7cdd6; cursor: not-allowed; }
+  .disabled-note { color: var(--muted); font-size: 12px; }
+
+  .msg { font-size: 12.5px; padding: 7px 10px; border-radius: 6px; display: none; }
+  .msg.error { display: block; background: var(--error-bg); color: var(--error); }
+  .msg.ok { display: block; background: var(--ok-bg); color: var(--ok); }
+  .banner { margin: 0 20px; margin-top: 16px; }
+
+  /* assistant: a dark side panel so it reads as a different kind of tool than the data columns */
+  .assistant { --a-bg: #171c24; --a-panel: #1f2631; --a-line: #2f3845; --a-text: #e6eaf0; --a-muted: #8f9bab; --a-accent: #7c9cff;
+    background: var(--a-bg); border-color: var(--a-bg); color: var(--a-text); }
+  .assistant .panel-head { border-bottom-color: var(--a-line); display: flex; align-items: center; gap: 10px; }
+  .assistant .panel-head .mark { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, var(--a-accent), #b48cff); display: grid; place-items: center; color: #0e1218; font-size: 14px; flex-shrink: 0; }
+  .assistant .panel-head h2 { color: var(--a-text); }
+  .assistant .panel-head .context { color: var(--a-muted); font-size: 12px; }
+  .assistant .panel-head .new-chat { margin-left: auto; flex-shrink: 0; }
+  .chat { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+  .chat:empty::before { content: "Tell me what to add, change or delete, and I will do it through the same rules as the forms."; color: var(--a-muted); font-size: 13px; padding: 6px 2px; }
+  .bubble { max-width: 92%; padding: 8px 11px; border-radius: 10px; font-size: 13.5px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .bubble.user { align-self: flex-end; background: var(--a-accent); color: #0e1218; border-bottom-right-radius: 3px; }
+  .bubble.agent { align-self: flex-start; background: var(--a-panel); color: var(--a-text); border-bottom-left-radius: 3px; }
+  .bubble.error { align-self: flex-start; background: #3a1f1f; color: #ffb4a8; }
+  .bubble.note { align-self: flex-start; background: #3a2f14; color: #ffd48a; }
+  .trace { align-self: stretch; border-left: 2px solid var(--a-line); padding: 2px 0 2px 10px; display: grid; gap: 3px; }
+  .trace div { font-family: var(--mono); font-size: 11px; color: var(--a-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .trace div.fail { color: #ffb4a8; }
+  .trace .agent-tag { color: var(--a-text); }
+  .trace .agent-tag.reviewer { color: #b48cff; }
+  .working { align-self: flex-start; font-size: 12px; color: var(--a-muted); }
+  .working::after { content: ""; display: inline-block; width: 1em; animation: dots 1.2s steps(4, end) infinite; }
+  @keyframes dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
+  .pending { align-self: stretch; border: 1px solid #8a6a2b; background: #2a2314; border-radius: 8px; padding: 10px 12px; display: grid; gap: 8px; }
+  .pending h4 { margin: 0; font-size: 12.5px; color: #ffd48a; }
+  .pending .item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .pending .item .what { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pending .item .what small { color: var(--a-muted); }
+  .pending .msg.ok { background: #14321f; color: #7fd6a0; }
+  .pending .msg.error { background: #3a1f1f; color: #ffb4a8; }
+  .btn { font: inherit; font-size: 12.5px; font-weight: 600; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--a-line); background: var(--a-panel); color: var(--a-text); cursor: pointer; }
+  .btn.danger { background: #d13b2f; border-color: #d13b2f; color: #fff; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .composer { border-top: 1px solid var(--a-line); padding: 10px 12px 12px; display: grid; gap: 6px; }
+  .composer .row2 { display: flex; gap: 8px; align-items: flex-end; }
+  .composer button[type=submit] { background: var(--a-accent); color: #0e1218; }
+  .composer button[type=submit]:disabled { background: #3a4452; color: var(--a-muted); }
+  textarea { font: inherit; font-size: 13.5px; color: var(--a-text); background: var(--a-panel); padding: 8px 10px; border: 1px solid var(--a-line); border-radius: 6px; resize: vertical; min-height: 44px; max-height: 160px; flex: 1; }
+  textarea::placeholder { color: var(--a-muted); }
+  textarea:focus { outline: 2px solid #3d5bb8; outline-offset: 0; border-color: var(--a-accent); }
+  textarea:disabled { opacity: .6; }
+  .composer .hint { font-size: 11.5px; color: var(--a-muted); }
+  .composer .hint button { font: inherit; color: var(--a-accent); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline dotted; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Product Inventory</h1>
+  <span class="hint">Pick a product to see its offerings, pick an offering to see its SKUs. Use the form at the bottom of each column to add one, or tell the assistant what to change.</span>
+  <a href="/docs">API docs</a>
+</header>
+
+<div id="banner" class="msg banner" role="alert"></div>
+
+<main>
+
+<div class="inventory" aria-label="Inventory">
+  <div class="caption">Inventory <span class="sub">· browse and edit directly</span></div>
+
+  <!-- Products -->
+  <section class="panel" aria-labelledby="products-h">
+    <div class="panel-head">
+      <h2 id="products-h">Products</h2>
+      <div class="context" id="products-context"></div>
+    </div>
+    <div class="list" id="products-list"></div>
+    <form id="product-form" autocomplete="off">
+      <h3>New product</h3>
+      <label>Name <input name="name" required maxlength="200" placeholder="Cloud Storage"></label>
+      <label>Description <input name="description" maxlength="500" placeholder="optional"></label>
+      <div class="actions"><button type="submit">Create product</button></div>
+      <div class="msg" id="product-msg"></div>
+    </form>
+  </section>
+
+  <!-- Offerings -->
+  <section class="panel" aria-labelledby="offerings-h">
+    <div class="panel-head">
+      <h2 id="offerings-h">Offerings</h2>
+      <div class="context" id="offerings-context"></div>
+    </div>
+    <div class="list" id="offerings-list"></div>
+    <form id="offering-form" autocomplete="off">
+      <h3>New offering</h3>
+      <label>Name <input name="name" required maxlength="200" placeholder="Business Plan"></label>
+      <label>Description <input name="description" maxlength="500" placeholder="optional"></label>
+      <div class="actions">
+        <button type="submit">Create offering</button>
+        <span class="disabled-note" id="offering-note"></span>
+      </div>
+      <div class="msg" id="offering-msg"></div>
+    </form>
+  </section>
+
+  <!-- SKUs -->
+  <section class="panel" aria-labelledby="skus-h">
+    <div class="panel-head">
+      <h2 id="skus-h">SKUs</h2>
+      <div class="context" id="skus-context"></div>
+    </div>
+    <div class="list" id="skus-list"></div>
+    <form id="sku-form" autocomplete="off">
+      <h3>New SKU</h3>
+      <label>SKU code <input name="sku_code" required maxlength="100" placeholder="CS-BIZ-1TB-ANNUAL" class="code"></label>
+      <div class="two">
+        <label>Price <input name="price" type="number" min="0" step="0.01" value="0" required></label>
+        <label>Quantity <input name="quantity" type="number" min="0" step="1" value="0" required></label>
+      </div>
+      <div class="actions">
+        <button type="submit">Create SKU</button>
+        <span class="disabled-note" id="sku-note"></span>
+      </div>
+      <div class="msg" id="sku-msg"></div>
+    </form>
+  </section>
+</div>
+
+<aside class="assistant-wrap" aria-label="Assistant">
+  <div class="caption assistant-caption">Assistant <span class="sub">· describe the change in plain language</span></div>
+
+  <section class="panel assistant" aria-labelledby="assistant-h">
+    <div class="panel-head">
+      <div class="mark" aria-hidden="true">&#10022;</div>
+      <div>
+        <h2 id="assistant-h">Inventory assistant</h2>
+        <div class="context">Creates, updates and deletes through the agents. Deletes wait for your confirmation.</div>
+      </div>
+      <button type="button" class="btn new-chat" id="chat-new" title="Forget this conversation and start another">New chat</button>
+    </div>
+    <div class="chat" id="chat" aria-live="polite"></div>
+    <form class="composer" id="chat-form">
+      <div class="row2">
+        <textarea id="chat-input" rows="2" placeholder="e.g. Add a Personal Plan offering to Cloud Storage with a 1TB annual SKU at 99.00, quantity 50" maxlength="2000"></textarea>
+        <button type="submit" id="chat-send">Send</button>
+      </div>
+      <div class="hint">Try:
+        <button type="button" data-example="Add an offering 'Personal Plan' to Cloud Storage with SKU CS-PER-1TB-ANNUAL at 99.00, quantity 50">add an offering</button> ·
+        <button type="button" data-example="Raise the price of CS-BIZ-1TB-ANNUAL to 5499">update a price</button> ·
+        <button type="button" data-example="Delete the Personal Plan offering under Cloud Storage">delete an offering</button> ·
+        <button type="button" data-example="Which SKUs are low on stock?">ask a question</button>
+      </div>
+    </form>
+  </section>
+</aside>
+
+</main>
+
+<script>
+(() => {
+  'use strict';
+
+  const LOW_STOCK = 10;
+  const $ = (id) => document.getElementById(id);
+
+  const state = {
+    products: [], offerings: [], skus: [],
+    productId: null, offeringId: null,
+    history: [],  // earlier chat turns, sent with each message so follow-ups are understood
+  };
+  const HISTORY_TURNS = 40;
+
+  // ---------- API ----------
+
+  async function api(method, path, body) {
+    const res = await fetch(path, {
+      method,
+      headers: body ? { 'Content-Type': 'application/json' } : {},
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (res.status === 204) return null;
+    let data = null;
+    try { data = await res.json(); } catch (_) { /* non-JSON body */ }
+    if (!res.ok) throw new Error(describeError(res.status, data));
+    return data;
+  }
+
+  function describeError(status, data) {
+    const detail = data && data.detail;
+    if (Array.isArray(detail)) {
+      // FastAPI validation errors: [{loc: ['body', 'price'], msg: '...'}]
+      return detail.map(e => `${(e.loc || []).slice(1).join('.') || 'input'}: ${e.msg}`).join('; ');
+    }
+    if (typeof detail === 'string') {
+      if (status === 409) return 'Not allowed: ' + detail.replace(/^already exists or breaks a rule: /, '');
+      return detail;
+    }
+    return `Request failed (HTTP ${status})`;
+  }
+
+  // ---------- rendering helpers ----------
+
+  function el(tag, attrs = {}, ...children) {
+    const node = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === 'class') node.className = v;
+      else if (k === 'onclick') node.addEventListener('click', v);
+      else node.setAttribute(k, v);
+    }
+    for (const c of children) {
+      if (c == null) continue;
+      node.append(typeof c === 'string' ? document.createTextNode(c) : c);
+    }
+    return node;
+  }
+
+  function fill(container, nodes, emptyText) {
+    container.replaceChildren();
+    if (!nodes.length) container.append(el('div', { class: 'empty' }, emptyText));
+    else container.append(...nodes);
+  }
+
+  function showMsg(id, kind, text) {
+    const box = $(id);
+    box.className = 'msg' + (kind ? ' ' + kind : '');
+    box.textContent = text || '';
+  }
+
+  const money = new Intl.NumberFormat(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  // ---------- products ----------
+
+  function renderProducts() {
+    fill($('products-list'), state.products.map(p =>
+      el('button', { type: 'button', class: 'row' + (p.id === state.productId ? ' selected' : ''), onclick: () => selectProduct(p.id) },
+        el('span', { class: 'name' }, p.name, p.description ? el('span', { class: 'sub' }, p.description) : null),
+        el('span', { class: 'id' }, '#' + p.id),
+        el('span', { class: 'chev' }, '›'))
+    ), 'No products yet. Create one below.');
+    $('products-context').textContent = state.products.length
+      ? `${state.products.length} product${state.products.length === 1 ? '' : 's'}` : '';
+  }
+
+  async function loadProducts() {
+    state.products = await api('GET', '/products');
+    if (state.productId !== null && !state.products.some(p => p.id === state.productId)) state.productId = null;
+    renderProducts();
+  }
+
+  async function selectProduct(id) {
+    state.productId = id;
+    state.offeringId = null;
+    state.offerings = [];
+    state.skus = [];
+    renderProducts();
+    renderOfferings();   // clear the old product's offerings right away
+    renderSkus();
+    await loadOfferings();
+  }
+
+  // ---------- offerings ----------
+
+  function currentProduct() { return state.products.find(p => p.id === state.productId) || null; }
+  function currentOffering() { return state.offerings.find(o => o.id === state.offeringId) || null; }
+
+  function renderOfferings() {
+    const product = currentProduct();
+    const form = $('offering-form');
+    const enabled = !!product;
+    form.querySelectorAll('input, button').forEach(i => { i.disabled = !enabled; });
+    $('offering-note').textContent = enabled ? '' : 'Select a product first';
+    $('offerings-context').textContent = product ? `in ${product.name}` : '';
+
+    if (!product) { fill($('offerings-list'), [], 'Select a product to see its offerings.'); return; }
+    fill($('offerings-list'), state.offerings.map(o =>
+      el('button', { type: 'button', class: 'row' + (o.id === state.offeringId ? ' selected' : ''), onclick: () => selectOffering(o.id) },
+        el('span', { class: 'name' }, o.name, o.description ? el('span', { class: 'sub' }, o.description) : null),
+        el('span', { class: 'id' }, '#' + o.id),
+        el('span', { class: 'chev' }, '›'))
+    ), 'No offerings yet. Create one below.');
+  }
+
+  async function loadOfferings() {
+    const productId = state.productId;
+    if (productId === null) { state.offerings = []; renderOfferings(); return; }
+    const rows = await api('GET', `/products/${productId}/offerings`);
+    if (state.productId !== productId) return;  // user moved on; drop the stale response
+    state.offerings = rows;
+    if (state.offeringId !== null && !state.offerings.some(o => o.id === state.offeringId)) state.offeringId = null;
+    renderOfferings();
+  }
+
+  async function selectOffering(id) {
+    state.offeringId = id;
+    state.skus = [];
+    renderOfferings();
+    renderSkus();        // clear the old offering's SKUs right away
+    await loadSkus();
+  }
+
+  // ---------- skus ----------
+
+  function renderSkus() {
+    const offering = currentOffering();
+    const product = currentProduct();
+    const form = $('sku-form');
+    const enabled = !!offering;
+    form.querySelectorAll('input, button').forEach(i => { i.disabled = !enabled; });
+    $('sku-note').textContent = enabled ? '' : 'Select an offering first';
+    $('skus-context').textContent = offering ? `in ${product ? product.name + ' › ' : ''}${offering.name}` : '';
+
+    if (!offering) {
+      fill($('skus-list'), [], product ? 'Select an offering to see its SKUs.' : 'Select a product, then an offering.');
+      return;
+    }
+    fill($('skus-list'), state.skus.map(s =>
+      el('div', { class: 'row static' },
+        el('span', { class: 'name code' }, s.sku_code),
+        s.quantity <= LOW_STOCK ? el('span', { class: 'pill' }, 'low stock') : null,
+        el('span', { class: 'num' }, money.format(s.price), el('small', {}, `qty ${s.quantity}`)))
+    ), 'No SKUs yet. Create one below.');
+  }
+
+  async function loadSkus() {
+    const offeringId = state.offeringId;
+    if (offeringId === null) { state.skus = []; renderSkus(); return; }
+    const rows = await api('GET', `/offerings/${offeringId}/skus`);
+    if (state.offeringId !== offeringId) return;  // user moved on; drop the stale response
+    state.skus = rows;
+    renderSkus();
+  }
+
+  async function refreshAll() {
+    // Reload every column after the assistant has changed things, keeping the selection where it still exists.
+    await loadProducts();
+    if (state.productId === null) {
+      state.offeringId = null; state.offerings = []; state.skus = [];
+      renderOfferings(); renderSkus();
+      return;
+    }
+    await loadOfferings();
+    if (state.offeringId === null) { state.skus = []; renderSkus(); return; }
+    await loadSkus();
+  }
+
+  // ---------- assistant ----------
+
+  const chat = $('chat');
+  const chatForm = $('chat-form');
+  const chatInput = $('chat-input');
+  const chatSend = $('chat-send');
+
+  function addBubble(kind, text) {
+    const node = el('div', { class: 'bubble ' + kind }, text);
+    chat.append(node);
+    chat.scrollTop = chat.scrollHeight;
+    return node;
+  }
+
+  function describeTool(ev) {
+    const input = { ...ev.input };
+    const parts = [];
+    if (input.entity) { parts.push(input.entity); delete input.entity; }
+    for (const [k, v] of Object.entries(input)) parts.push(`${k}=${typeof v === 'object' ? JSON.stringify(v) : v}`);
+    return `${ev.tool}(${parts.join(', ')})`;
+  }
+
+  async function readLines(res, onLine) {
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      let nl;
+      while ((nl = buf.indexOf('\n')) >= 0) {
+        const line = buf.slice(0, nl).trim();
+        buf = buf.slice(nl + 1);
+        if (line) onLine(JSON.parse(line));
+      }
+    }
+    if (buf.trim()) onLine(JSON.parse(buf));
+  }
+
+  function remember(userText, assistantText) {
+    state.history.push({ role: 'user', content: userText }, { role: 'assistant', content: assistantText });
+    if (state.history.length > HISTORY_TURNS) state.history.splice(0, state.history.length - HISTORY_TURNS);
+  }
+
+  function renderPending(list) {
+    if (!list.length) return;
+    const box = el('div', { class: 'pending' },
+      el('h4', {}, `The assistant wants to delete ${list.length} record${list.length === 1 ? '' : 's'}. Nothing is deleted until you confirm.`));
+    for (const d of list) {
+      const path = { products: 'products', offerings: 'offerings', skus: 'skus' }[d.entity];
+      const kind = { products: 'product', offerings: 'offering', skus: 'SKU' }[d.entity];
+      const children = d.entity === 'products' ? ' and all its offerings and SKUs' : d.entity === 'offerings' ? ' and all its SKUs' : '';
+      const status = el('span', { class: 'what' }, `${kind} `, el('b', {}, d.label), el('small', {}, ` #${d.id}${children}`));
+      const yes = el('button', { type: 'button', class: 'btn danger' }, 'Delete');
+      const no = el('button', { type: 'button', class: 'btn' }, 'Keep');
+      const row = el('div', { class: 'item' }, status, yes, no);
+      const settle = (text, kindClass) => { yes.remove(); no.remove(); row.append(el('span', { class: 'msg ' + kindClass, style: 'display:block' }, text)); };
+      yes.addEventListener('click', async () => {
+        yes.disabled = no.disabled = true;
+        try {
+          await api('DELETE', `/${path}/${d.id}`);
+          settle('Deleted', 'ok');
+          remember(`(In the UI I confirmed the delete of ${kind} '${d.label}' #${d.id}. It is now deleted.)`, 'Noted.');
+          await refreshAll();
+        } catch (err) {
+          settle(err.message, 'error');
+          yes.disabled = no.disabled = false;
+        }
+      });
+      no.addEventListener('click', () => {
+        settle('Kept', 'ok');
+        remember(`(In the UI I kept ${kind} '${d.label}' #${d.id}; it was not deleted.)`, 'Noted.');
+      });
+      box.append(row);
+    }
+    chat.append(box);
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  async function sendInstruction(text) {
+    addBubble('user', text);
+    chatSend.disabled = true; chatInput.disabled = true;
+    const working = el('div', { class: 'working' }, 'Working');
+    chat.append(working);
+    let trace = null;
+    try {
+      const res = await fetch('/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text, history: state.history }) });
+      if (!res.ok) {
+        let data = null; try { data = await res.json(); } catch (_) {}
+        throw new Error(describeError(res.status, data));
+      }
+      await readLines(res, (ev) => {
+        if (ev.type === 'tool') {
+          if (!trace) { trace = el('div', { class: 'trace' }); chat.insertBefore(trace, working); }
+          trace.append(el('div', { class: ev.ok ? '' : 'fail', title: ev.ok ? '' : ev.result },
+            el('span', { class: 'agent-tag ' + ev.agent }, `[${ev.agent}] `), describeTool(ev), ev.ok ? '' : ` \u2192 ${ev.result}`));
+          chat.scrollTop = chat.scrollHeight;
+        } else if (ev.type === 'done') {
+          addBubble('agent', ev.reply || '(no reply)');
+          remember(text, ev.reply || '(no reply)');
+          renderPending(ev.pending_deletes || []);
+        } else if (ev.type === 'error') {
+          addBubble('error', ev.detail);
+        }
+      });
+    } catch (err) {
+      addBubble('error', err.message);
+    } finally {
+      working.remove();
+      chatSend.disabled = false; chatInput.disabled = false;
+      chatInput.focus();
+      try { await refreshAll(); } catch (_) { /* lists refresh on next action */ }
+    }
+  }
+
+  chatForm.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const text = chatInput.value.trim();
+    if (!text) return;
+    chatInput.value = '';
+    sendInstruction(text);
+  });
+  $('chat-new').addEventListener('click', () => {
+    state.history = [];
+    chat.replaceChildren();
+    chatInput.focus();
+  });
+  chatInput.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); chatForm.requestSubmit(); }
+  });
+  chatForm.querySelectorAll('[data-example]').forEach(b => b.addEventListener('click', () => {
+    chatInput.value = b.dataset.example; chatInput.focus();
+  }));
+
+  // ---------- create forms ----------
+
+  function wireForm(formId, msgId, buildRequest, afterCreate) {
+    const form = $(formId);
+    form.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      showMsg(msgId, null);
+      const fd = new FormData(form);
+      const req = buildRequest(fd);
+      if (!req) return;
+      const button = form.querySelector('button[type=submit]');
+      button.disabled = true;
+      try {
+        const created = await api('POST', req.path, req.body);
+        form.reset();
+        await afterCreate(created);
+        showMsg(msgId, 'ok', req.okText(created));
+      } catch (err) {
+        showMsg(msgId, 'error', err.message);
+      } finally {
+        button.disabled = false;
+      }
+    });
+  }
+
+  wireForm('product-form', 'product-msg',
+    (fd) => ({
+      path: '/products',
+      body: { name: fd.get('name').trim(), description: fd.get('description').trim() },
+      okText: (p) => `Created product "${p.name}".`,
+    }),
+    async (p) => { await loadProducts(); await selectProduct(p.id); });
+
+  wireForm('offering-form', 'offering-msg',
+    (fd) => {
+      if (state.productId === null) { showMsg('offering-msg', 'error', 'Select a product first.'); return null; }
+      return {
+        path: `/products/${state.productId}/offerings`,
+        body: { name: fd.get('name').trim(), description: fd.get('description').trim() },
+        okText: (o) => `Created offering "${o.name}".`,
+      };
+    },
+    async (o) => { await loadOfferings(); await selectOffering(o.id); });
+
+  wireForm('sku-form', 'sku-msg',
+    (fd) => {
+      if (state.offeringId === null) { showMsg('sku-msg', 'error', 'Select an offering first.'); return null; }
+      const price = Number(fd.get('price'));
+      const quantity = Number(fd.get('quantity'));
+      if (!Number.isFinite(price) || price < 0) { showMsg('sku-msg', 'error', 'Price must be 0 or more.'); return null; }
+      if (!Number.isInteger(quantity) || quantity < 0) { showMsg('sku-msg', 'error', 'Quantity must be a whole number, 0 or more.'); return null; }
+      return {
+        path: `/offerings/${state.offeringId}/skus`,
+        body: { sku_code: fd.get('sku_code').trim(), price, quantity },
+        okText: (s) => `Created SKU ${s.sku_code}.`,
+      };
+    },
+    async () => { await loadSkus(); });
+
+  // ---------- boot ----------
+
+  (async () => {
+    renderOfferings();
+    renderSkus();
+    try {
+      await loadProducts();
+    } catch (err) {
+      showMsg('banner', 'error', 'Could not reach the API: ' + err.message + '. Is the server running?');
+    }
+  })();
+})();
+</script>
+</body>
+</html>
