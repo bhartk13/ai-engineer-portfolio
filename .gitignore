@@ -1,0 +1,49 @@
+# ---- Secrets (never commit) ----
+.env
+.env.*
+!.env.example
+!.env.*.example
+.envrc
+*.pem
+*.key
+credentials.json
+service-account*.json
+secrets.json
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.ipynb_checkpoints/
+
+# ---- Node ----
+node_modules/
+dist/
+.next/
+.vite/
+*.log
+
+# ---- Local data ----
+*.db
+*.sqlite
+*.sqlite3
+chroma_db/
+.chroma/
+
+# ---- OS / editor ----
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# ---- Cloud / infra ----
+.aws/
+cdk.out/
+.terraform/
